@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Star, ShoppingCart, Heart } from "lucide-react";
+import { useState } from "react";
+import { Star, ShoppingCart, Heart, Check } from "lucide-react";
 import { Product } from "@/data/products";
 import { useCart } from "@/context/CartContext";
 
@@ -15,6 +16,18 @@ const badgeColors: Record<string, string> = {
 
 export default function ProductCard({ product }: { product: Product }) {
   const { addToCart } = useCart();
+  const [isAdded, setIsAdded] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(false);
+
+  const handleAddToCart = () => {
+    addToCart(product);
+    setIsAdded(true);
+    setTimeout(() => setIsAdded(false), 2000);
+  };
+
+  const handleFavorite = () => {
+    setIsFavorite(!isFavorite);
+  };
 
   return (
     <div className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col">
@@ -32,18 +45,25 @@ export default function ProductCard({ product }: { product: Product }) {
             {product.badge}
           </span>
         )}
-        <button className="absolute top-3 right-3 w-8 h-8 bg-white rounded-full shadow flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50">
-          <Heart className="w-4 h-4 text-gray-400 hover:text-red-500" />
+        <button
+          onClick={handleFavorite}
+          className="absolute top-3 right-3 w-8 h-8 bg-white rounded-full shadow flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50"
+        >
+          <Heart
+            className={`w-4 h-4 transition-colors ${
+              isFavorite ? "text-red-500 fill-red-500" : "text-gray-400 hover:text-red-500"
+            }`}
+          />
         </button>
       </Link>
 
       {/* Content */}
       <div className="p-4 flex flex-col flex-1">
-        <p className="text-xs text-indigo-600 font-medium uppercase tracking-wide mb-1">
+        <p className="text-xs text-[#f97316] font-medium uppercase tracking-wide mb-1">
           {product.category}
         </p>
         <Link href={`/product/${product.id}`}>
-          <h3 className="font-semibold text-gray-800 hover:text-indigo-600 transition-colors line-clamp-2 mb-2">
+          <h3 className="font-semibold text-gray-800 hover:text-[#f97316] transition-colors line-clamp-2 mb-2">
             {product.name}
           </h3>
         </Link>
@@ -65,8 +85,13 @@ export default function ProductCard({ product }: { product: Product }) {
           <span className="text-xs text-gray-500">({product.reviews})</span>
         </div>
 
+        {/* Stock Status */}
+        {!product.inStock && (
+          <p className="text-xs text-red-600 font-semibold mb-2">Out of Stock</p>
+        )}
+
         {/* Price + Cart */}
-        <div className="mt-auto flex items-center justify-between">
+        <div className="mt-auto flex items-center justify-between gap-2">
           <div>
             <span className="text-lg font-bold text-gray-900">
               ${product.price.toFixed(2)}
@@ -78,12 +103,25 @@ export default function ProductCard({ product }: { product: Product }) {
             )}
           </div>
           <button
-            onClick={() => addToCart(product)}
+            onClick={handleAddToCart}
             disabled={!product.inStock}
-            className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-200 text-white text-sm font-medium px-3 py-2 rounded-xl transition-colors"
+            className={`flex items-center gap-1.5 font-medium px-3 py-2 rounded-xl transition-all duration-300 text-sm ${
+              isAdded
+                ? "bg-emerald-100 text-emerald-700"
+                : "bg-[#f97316] hover:bg-[#ea580c] disabled:bg-gray-200 text-white"
+            }`}
           >
-            <ShoppingCart className="w-4 h-4" />
-            Add
+            {isAdded ? (
+              <>
+                <Check className="w-4 h-4" />
+                Added
+              </>
+            ) : (
+              <>
+                <ShoppingCart className="w-4 h-4" />
+                Add
+              </>
+            )}
           </button>
         </div>
       </div>

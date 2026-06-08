@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useCart } from "@/context/CartContext";
-import { ShoppingCart, Menu, X, Shield } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
+import { ShoppingCart, Menu, X, Shield, User, LogOut } from "lucide-react";
 
 const navLinks = [
   { label: "Home", href: "/" },
@@ -16,7 +17,9 @@ const navLinks = [
 
 export default function Navbar() {
   const { totalItems } = useCart();
+  const { user, isLoggedIn, logout } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   return (
     <nav className="sticky top-0 z-50 bg-white shadow-sm border-b border-gray-100">
@@ -74,6 +77,49 @@ export default function Navbar() {
               Get Quote
             </Link>
 
+            {/* User Menu */}
+            {isLoggedIn ? (
+              <div className="relative hidden sm:block">
+                <button
+                  onClick={() => setUserMenuOpen(!userMenuOpen)}
+                  className="flex items-center gap-2 px-3 py-2 rounded-full text-[#1a3a6b] hover:bg-gray-100 transition-colors"
+                >
+                  <User className="w-5 h-5" />
+                  <span className="text-sm font-medium hidden md:inline">{user?.firstName}</span>
+                </button>
+                {userMenuOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50">
+                    <Link
+                      href="/profile"
+                      className="flex items-center gap-2 px-4 py-2.5 text-gray-700 hover:bg-gray-50 text-sm font-medium"
+                      onClick={() => setUserMenuOpen(false)}
+                    >
+                      <User className="w-4 h-4" />
+                      My Profile
+                    </Link>
+                    <button
+                      onClick={() => {
+                        logout();
+                        setUserMenuOpen(false);
+                      }}
+                      className="w-full flex items-center gap-2 px-4 py-2.5 text-red-600 hover:bg-red-50 text-sm font-medium"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      Logout
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <Link
+                href="/login"
+                className="hidden sm:inline-flex items-center gap-2 text-[#1a3a6b] hover:text-[#f97316] font-semibold text-sm transition-colors"
+              >
+                <User className="w-4 h-4" />
+                Sign In
+              </Link>
+            )}
+
             {/* Mobile toggle */}
             <button
               className="lg:hidden flex items-center justify-center w-10 h-10 rounded-full text-[#1a3a6b] hover:bg-gray-100"
@@ -98,7 +144,7 @@ export default function Navbar() {
               {link.label}
             </Link>
           ))}
-          <div className="pt-2">
+          <div className="pt-2 space-y-2">
             <Link
               href="/shop"
               className="block text-center bg-[#f97316] text-white font-semibold py-2.5 rounded-full"
@@ -106,6 +152,34 @@ export default function Navbar() {
             >
               Get Quote
             </Link>
+            {isLoggedIn ? (
+              <>
+                <Link
+                  href="/profile"
+                  className="block text-center bg-gray-100 text-[#1a3a6b] font-semibold py-2.5 rounded-full"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  My Profile
+                </Link>
+                <button
+                  onClick={() => {
+                    logout();
+                    setMenuOpen(false);
+                  }}
+                  className="w-full text-center bg-red-50 text-red-600 font-semibold py-2.5 rounded-full"
+                >
+                  Logout
+                </button>
+              </>
+            ) : (
+              <Link
+                href="/login"
+                className="block text-center bg-gray-100 text-[#1a3a6b] font-semibold py-2.5 rounded-full"
+                onClick={() => setMenuOpen(false)}
+              >
+                Sign In
+              </Link>
+            )}
           </div>
         </div>
       )}
