@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useState } from "react";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
-import { ShoppingCart, Menu, X, Shield, User, LogOut } from "lucide-react";
+import { ShoppingCart, Menu, X, User, LogOut } from "lucide-react";
 
 const navLinks = [
   { label: "Home", href: "/" },
@@ -27,19 +28,14 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 group">
-            <div className="bg-[#1a3a6b] text-white rounded-xl p-2 group-hover:bg-[#152f58] transition-colors">
-              <Shield className="w-5 h-5" />
-            </div>
-            <div className="leading-tight">
-              <span className="text-lg font-extrabold text-[#1a3a6b] leading-none">
-                NewTech{" "}
-              </span>
-              <span className="text-lg font-extrabold text-[#f97316] leading-none">
-                Shop
-              </span>
-              <p className="text-[9px] font-semibold text-gray-400 uppercase tracking-widest leading-none">
-                Complete Protection
-              </p>
+            <div className="relative h-10 w-40">
+              <Image
+                src="/logo-navbar.png" // Using the optimized navbar logo
+                alt="NewTech Shop Logo"
+                fill
+                className="object-contain"
+                priority
+              />
             </div>
           </Link>
 

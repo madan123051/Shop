@@ -47,6 +47,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Load user from localStorage on mount
   useEffect(() => {
+    // Initialize demo user if no users exist
+    const existingUsers = JSON.parse(localStorage.getItem("users") || "[]");
+    if (existingUsers.length === 0) {
+      const demoUser = {
+        id: "demo-user-id",
+        email: "demo@example.com",
+        password: "demo123",
+        firstName: "Demo",
+        lastName: "User",
+        phone: "9876543210",
+        addresses: [
+          {
+            id: "demo-addr-id",
+            firstName: "Demo",
+            lastName: "User",
+            address: "123 NewTech Street, Sector 62",
+            city: "Noida",
+            state: "Uttar Pradesh",
+            zip: "201301",
+            country: "India",
+            phone: "9876543210",
+            isDefault: true,
+          },
+        ],
+        createdAt: new Date().toISOString(),
+      };
+      localStorage.setItem("users", JSON.stringify([demoUser]));
+    }
+
     const stored = localStorage.getItem("user");
     if (stored) {
       try {
