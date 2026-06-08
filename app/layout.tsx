@@ -5,8 +5,8 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
 export const metadata: Metadata = {
-  title: "ShopZone — Your Online Store",
-  description: "Discover amazing products at unbeatable prices on ShopZone.",
+  title: "NewTech Home Solutions — Complete Home Protection & Interior Solutions",
+  description: "Premium Blinds, Pleated Mesh, Honeycomb Partitions, PVC Partition, Security Mesh and more. Serving Delhi NCR.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
