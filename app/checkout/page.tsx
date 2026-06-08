@@ -314,7 +314,7 @@ export default function CheckoutPage() {
                     value={form.cardNumber}
                     onChange={handleChange}
                     placeholder="1234 5678 9012 3456"
-                    maxLength="19"
+                    maxLength={19}
                     required
                     className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#f97316]"
                   />
@@ -328,7 +328,7 @@ export default function CheckoutPage() {
                       value={form.expiry}
                       onChange={handleChange}
                       placeholder="MM/YY"
-                      maxLength="5"
+                      maxLength={5}
                       required
                       className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#f97316]"
                     />
@@ -341,7 +341,7 @@ export default function CheckoutPage() {
                       value={form.cvv}
                       onChange={handleChange}
                       placeholder="123"
-                      maxLength="3"
+                      maxLength={3}
                       required
                       className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#f97316]"
                     />
