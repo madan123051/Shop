@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Shield, Mail, Phone, MapPin, Instagram, Facebook, Youtube } from "lucide-react";
+import Image from "next/image";
+import { Mail, Phone, MapPin, Instagram, Facebook, Youtube } from "lucide-react";
 
 export default function Footer() {
   return (
@@ -9,8 +10,13 @@ export default function Footer() {
           {/* Brand */}
           <div className="space-y-4">
             <Link href="/" className="flex items-center gap-2">
-              <div className="bg-[#f97316] text-white rounded-xl p-2">
-                <Shield className="w-5 h-5" />
+              <div className="relative h-10 w-10">
+                <Image
+                  src="/bag-icon.png"
+                  alt="NewTech Logo Icon"
+                  fill
+                  className="object-contain"
+                />
               </div>
               <div className="leading-tight">
                 <span className="text-lg font-extrabold text-white">NewTech </span>
