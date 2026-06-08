@@ -28,14 +28,25 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 group">
-            <div className="relative h-10 w-40">
+            <div className="relative h-10 w-10">
               <Image
-                src="/logo-navbar.png" // Using the optimized navbar logo
-                alt="NewTech Shop Logo"
+                src="/bag-icon.png" // Using the new bag icon
+                alt="NewTech Logo Icon"
                 fill
                 className="object-contain"
                 priority
               />
+            </div>
+            <div className="leading-tight">
+              <span className="text-lg font-extrabold text-[#1a3a6b] leading-none">
+                NewTech{" "}
+              </span>
+              <span className="text-lg font-extrabold text-[#f97316] leading-none">
+                Shop
+              </span>
+              <p className="text-[9px] font-semibold text-gray-400 uppercase tracking-widest leading-none">
+                Complete Protection
+              </p>
             </div>
           </Link>
 
