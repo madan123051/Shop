@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowRight, ShieldCheck, Star, Clock, Headphones } from "lucide-react";
 import { products, categories } from "@/data/products";
 import ProductCard from "@/components/ProductCard";
@@ -54,44 +55,61 @@ export default function HomePage() {
   return (
     <div>
       {/* ── Hero ─────────────────────────────────────────────────────────── */}
-      <section className="bg-gradient-to-br from-[#fdf6ee] via-[#fef9f4] to-[#fff3e8]">
+      <section className="bg-gradient-to-br from-[#fdf6ee] via-[#fef9f4] to-[#fff3e8] overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24">
-          <div className="max-w-2xl">
-            <span className="inline-block border border-[#f97316]/40 text-[#f97316] text-xs font-bold px-4 py-1.5 rounded-full mb-5 bg-orange-50 tracking-wide uppercase">
-              Premium Home Solutions
-            </span>
-            <h1 className="text-4xl md:text-6xl font-extrabold text-[#1a3a6b] leading-tight mb-6">
-              Protect Your Home{" "}
-              <span className="text-[#f97316]">
-                With Modern Technology
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div>
+              <span className="inline-block border border-[#f97316]/40 text-[#f97316] text-xs font-bold px-4 py-1.5 rounded-full mb-5 bg-orange-50 tracking-wide uppercase">
+                Premium Home Solutions
               </span>
-            </h1>
-            <p className="text-gray-600 text-lg mb-4 leading-relaxed">
-              Serving premium home protection &amp; interior solutions across Delhi NCR. Specialising in Blinds, Pleated Mosquito Nets, Honeycomb Partitions &amp; more.
-            </p>
-            <div className="flex flex-wrap gap-4 mt-8">
-              <Link
-                href="/shop"
-                className="inline-flex items-center gap-2 bg-[#f97316] hover:bg-[#ea580c] text-white font-bold px-7 py-3.5 rounded-full transition-colors shadow-lg"
-              >
-                Shop Now <ArrowRight className="w-4 h-4" />
-              </Link>
-              <Link
-                href="/shop"
-                className="inline-flex items-center gap-2 border-2 border-[#1a3a6b] text-[#1a3a6b] font-semibold px-7 py-3.5 rounded-full hover:bg-[#1a3a6b] hover:text-white transition-colors"
-              >
-                Browse Categories
-              </Link>
+              <h1 className="text-4xl md:text-6xl font-extrabold text-[#1a3a6b] leading-tight mb-6">
+                Protect Your Home{" "}
+                <span className="text-[#f97316]">
+                  With Modern Technology
+                </span>
+              </h1>
+              <p className="text-gray-600 text-lg mb-4 leading-relaxed">
+                Serving premium home protection &amp; interior solutions across Delhi NCR. Specialising in Blinds, Pleated Mosquito Nets, Honeycomb Partitions &amp; more.
+              </p>
+              <div className="flex flex-wrap gap-4 mt-8">
+                <Link
+                  href="/shop"
+                  className="inline-flex items-center gap-2 bg-[#f97316] hover:bg-[#ea580c] text-white font-bold px-7 py-3.5 rounded-full transition-colors shadow-lg"
+                >
+                  Shop Now <ArrowRight className="w-4 h-4" />
+                </Link>
+                <Link
+                  href="/shop"
+                  className="inline-flex items-center gap-2 border-2 border-[#1a3a6b] text-[#1a3a6b] font-semibold px-7 py-3.5 rounded-full hover:bg-[#1a3a6b] hover:text-white transition-colors"
+                >
+                  Browse Categories
+                </Link>
+              </div>
+
+              {/* Stats */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 mt-12">
+                {stats.map(({ value, label }) => (
+                  <div key={label}>
+                    <p className="text-3xl font-extrabold text-[#f97316]">{value}</p>
+                    <p className="text-sm text-gray-500 mt-0.5">{label}</p>
+                  </div>
+                ))}
+              </div>
             </div>
 
-            {/* Stats */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 mt-12">
-              {stats.map(({ value, label }) => (
-                <div key={label}>
-                  <p className="text-3xl font-extrabold text-[#f97316]">{value}</p>
-                  <p className="text-sm text-gray-500 mt-0.5">{label}</p>
-                </div>
-              ))}
+            {/* Hero Image */}
+            <div className="relative hidden lg:block">
+              <div className="absolute -inset-4 bg-gradient-to-r from-[#f97316]/20 to-[#1a3a6b]/20 rounded-3xl blur-2xl opacity-30 animate-pulse" />
+              <div className="relative bg-white p-4 rounded-3xl shadow-2xl border border-gray-100 transform hover:scale-[1.02] transition-transform duration-500">
+                <Image
+                  src="/hero-image.png"
+                  alt="NewTech Premium Home Solutions"
+                  width={800}
+                  height={600}
+                  className="rounded-2xl w-full h-auto object-cover"
+                  priority
+                />
+              </div>
             </div>
           </div>
         </div>
