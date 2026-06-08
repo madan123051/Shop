@@ -102,7 +102,7 @@ export default function HomePage() {
               <div className="absolute -inset-4 bg-gradient-to-r from-[#f97316]/20 to-[#1a3a6b]/20 rounded-3xl blur-2xl opacity-30 animate-pulse" />
               <div className="relative bg-white p-4 rounded-3xl shadow-2xl border border-gray-100 transform hover:scale-[1.02] transition-transform duration-500">
                 <Image
-                  src="/hero-image.png"
+                  src="/hero-image.png?v=1"
                   alt="NewTech Premium Home Solutions"
                   width={800}
                   height={600}
