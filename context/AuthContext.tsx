@@ -54,6 +54,10 @@ interface AuthContextType {
   register: (email: string, password: string, firstName: string, lastName: string) => Promise<void>;
   logout: () => Promise<void>;
   updateProfile: (updates: Partial<User>) => Promise<void>;
+  addAddress: (address: Omit<Address, "id">) => Promise<void>;
+  updateAddress: (id: string, updates: Partial<Omit<Address, "id">>) => Promise<void>;
+  deleteAddress: (id: string) => Promise<void>;
+  setDefaultAddress: (id: string) => Promise<void>;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -127,6 +131,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser((prev) => (prev ? { ...prev, ...updates } : prev));
   };
 
+  const addAddress = async (addressData: Omit<Address, "id">) => {
+    const newAddress: Address = {
+      ...addressData,
+      id: `addr_${Date.now()}`,
+    };
+    setUser((prev) => {
+      if (!prev) return prev;
+      const addresses = addressData.isDefault
+        ? [...prev.addresses.map((a) => ({ ...a, isDefault: false })), newAddress]
+        : [...prev.addresses, newAddress];
+      return { ...prev, addresses };
+    });
+  };
+
+  const updateAddress = async (id: string, updates: Partial<Omit<Address, "id">>) => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      const addresses = prev.addresses.map((a) =>
+        a.id === id ? { ...a, ...updates } : a
+      );
+      return { ...prev, addresses };
+    });
+  };
+
+  const deleteAddress = async (id: string) => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      return { ...prev, addresses: prev.addresses.filter((a) => a.id !== id) };
+    });
+  };
+
+  const setDefaultAddress = async (id: string) => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      const addresses = prev.addresses.map((a) => ({ ...a, isDefault: a.id === id }));
+      return { ...prev, addresses };
+    });
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -139,6 +182,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         register,
         logout,
         updateProfile,
+        addAddress,
+        updateAddress,
+        deleteAddress,
+        setDefaultAddress,
       }}
     >
       {children}
