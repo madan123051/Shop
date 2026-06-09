@@ -30,7 +30,7 @@ export default function Navbar() {
           <Link href="/" className="flex items-center gap-2 group">
             <div className="relative h-10 w-10">
               <Image
-                src="/bag-icon.png" // Using the new bag icon
+                src="/bag-icon.png"
                 alt="NewTech Logo Icon"
                 fill
                 className="object-contain"
@@ -78,7 +78,7 @@ export default function Navbar() {
             </Link>
 
             <Link
-              href="/shop"
+              href="/quote"
               className="hidden sm:inline-flex items-center bg-[#f97316] hover:bg-[#ea580c] text-white font-semibold text-sm px-5 py-2 rounded-full transition-colors shadow-sm"
             >
               Get Quote
@@ -153,7 +153,7 @@ export default function Navbar() {
           ))}
           <div className="pt-2 space-y-2">
             <Link
-              href="/shop"
+              href="/quote"
               className="block text-center bg-[#f97316] text-white font-semibold py-2.5 rounded-full"
               onClick={() => setMenuOpen(false)}
             >
