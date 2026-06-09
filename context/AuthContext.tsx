@@ -1,6 +1,19 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
+import {
+  User as FirebaseUser,
+  signInWithEmailAndPassword,
+  signInWithPopup,
+  GoogleAuthProvider,
+  signOut,
+  onAuthStateChanged,
+  createUserWithEmailAndPassword,
+  updateProfile as fbUpdateProfile,
+} from "firebase/auth";
+import { auth } from "@/lib/firebase";
+
+// ─── Types ───────────────────────────────────────────────────────────────────
 
 export interface Address {
   id: string;
@@ -17,27 +30,54 @@ export interface Address {
 
 export interface User {
   id: string;
-  email: string;
+  uid: string;
+  email: string | null;
+  displayName: string | null;
+  photoURL: string | null;
   firstName: string;
   lastName: string;
   phone: string;
   addresses: Address[];
   createdAt: string;
+  isAdmin: boolean;
 }
 
 interface AuthContextType {
   user: User | null;
   isLoggedIn: boolean;
+  isAdmin: boolean;
   isLoading: boolean;
+  /** Email + password login — returns { isAdmin } so caller can redirect */
+  login: (email: string, password: string) => Promise<{ isAdmin: boolean }>;
+  /** Google OAuth login (customers) */
+  loginWithGoogle: () => Promise<void>;
   register: (email: string, password: string, firstName: string, lastName: string) => Promise<void>;
-  login: (email: string, password: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   updateProfile: (updates: Partial<User>) => Promise<void>;
-  addAddress: (address: Omit<Address, "id">) => Promise<void>;
-  updateAddress: (id: string, address: Partial<Address>) => Promise<void>;
-  deleteAddress: (id: string) => Promise<void>;
-  setDefaultAddress: (id: string) => Promise<void>;
 }
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL ?? "";
+
+function toUser(fbUser: FirebaseUser): User {
+  const parts = (fbUser.displayName ?? "").split(" ");
+  return {
+    id: fbUser.uid,
+    uid: fbUser.uid,
+    email: fbUser.email,
+    displayName: fbUser.displayName,
+    photoURL: fbUser.photoURL,
+    firstName: parts[0] ?? "",
+    lastName: parts.slice(1).join(" ") ?? "",
+    phone: "",
+    addresses: [],
+    createdAt: fbUser.metadata.creationTime ?? new Date().toISOString(),
+    isAdmin: !!ADMIN_EMAIL && fbUser.email === ADMIN_EMAIL,
+  };
+}
+
+// ─── Context ─────────────────────────────────────────────────────────────────
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -45,203 +85,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load user from localStorage on mount
   useEffect(() => {
-    // Initialize demo user if no users exist
-    const existingUsers = JSON.parse(localStorage.getItem("users") || "[]");
-    if (existingUsers.length === 0) {
-      const demoUser = {
-        id: "demo-user-id",
-        email: "demo@example.com",
-        password: "demo123",
-        firstName: "Demo",
-        lastName: "User",
-        phone: "9876543210",
-        addresses: [
-          {
-            id: "demo-addr-id",
-            firstName: "Demo",
-            lastName: "User",
-            address: "123 NewTech Street, Sector 62",
-            city: "Noida",
-            state: "Uttar Pradesh",
-            zip: "201301",
-            country: "India",
-            phone: "9876543210",
-            isDefault: true,
-          },
-        ],
-        createdAt: new Date().toISOString(),
-      };
-      localStorage.setItem("users", JSON.stringify([demoUser]));
-    }
-
-    const stored = localStorage.getItem("user");
-    if (stored) {
-      try {
-        setUser(JSON.parse(stored));
-      } catch (e) {
-        console.error("Failed to parse user data", e);
-      }
-    }
-    setIsLoading(false);
+    const unsubscribe = onAuthStateChanged(auth, (fbUser) => {
+      setUser(fbUser ? toUser(fbUser) : null);
+      setIsLoading(false);
+    });
+    return unsubscribe;
   }, []);
 
-  // Save user to localStorage whenever it changes
-  useEffect(() => {
-    if (user) {
-      localStorage.setItem("user", JSON.stringify(user));
-    } else {
-      localStorage.removeItem("user");
-    }
-  }, [user]);
-
-  const register = async (email: string, password: string, firstName: string, lastName: string) => {
-    // Check if user already exists
-    const existingUsers = JSON.parse(localStorage.getItem("users") || "[]");
-    if (existingUsers.some((u: any) => u.email === email)) {
-      throw new Error("Email already registered");
-    }
-
-    const newUser: User = {
-      id: Date.now().toString(),
-      email,
-      firstName,
-      lastName,
-      phone: "",
-      addresses: [],
-      createdAt: new Date().toISOString(),
-    };
-
-    // Store password separately (in real app, hash it on backend)
-    const userWithPassword = { ...newUser, password };
-    existingUsers.push(userWithPassword);
-    localStorage.setItem("users", JSON.stringify(existingUsers));
-
-    setUser(newUser);
+  const login = async (email: string, password: string): Promise<{ isAdmin: boolean }> => {
+    await signInWithEmailAndPassword(auth, email, password);
+    return { isAdmin: !!ADMIN_EMAIL && email === ADMIN_EMAIL };
   };
 
-  const login = async (email: string, password: string) => {
-    const users = JSON.parse(localStorage.getItem("users") || "[]");
-    const foundUser = users.find((u: any) => u.email === email && u.password === password);
-
-    if (!foundUser) {
-      throw new Error("Invalid email or password");
-    }
-
-    const { password: _, ...userWithoutPassword } = foundUser;
-    setUser(userWithoutPassword);
+  const loginWithGoogle = async () => {
+    const provider = new GoogleAuthProvider();
+    await signInWithPopup(auth, provider);
   };
 
-  const logout = () => {
-    setUser(null);
+  const register = async (
+    email: string,
+    password: string,
+    firstName: string,
+    lastName: string
+  ) => {
+    const { user: fbUser } = await createUserWithEmailAndPassword(auth, email, password);
+    await fbUpdateProfile(fbUser, { displayName: `${firstName} ${lastName}`.trim() });
+  };
+
+  const logout = async () => {
+    await signOut(auth);
   };
 
   const updateProfile = async (updates: Partial<User>) => {
-    if (!user) throw new Error("Not logged in");
-
-    const updatedUser = { ...user, ...updates };
-    setUser(updatedUser);
-
-    // Update in users list
-    const users = JSON.parse(localStorage.getItem("users") || "[]");
-    const index = users.findIndex((u: any) => u.id === user.id);
-    if (index !== -1) {
-      users[index] = { ...users[index], ...updates };
-      localStorage.setItem("users", JSON.stringify(users));
+    if (!auth.currentUser) throw new Error("Not logged in");
+    if (updates.firstName !== undefined || updates.lastName !== undefined) {
+      const first = updates.firstName ?? user?.firstName ?? "";
+      const last = updates.lastName ?? user?.lastName ?? "";
+      await fbUpdateProfile(auth.currentUser, { displayName: `${first} ${last}`.trim() });
     }
-  };
-
-  const addAddress = async (address: Omit<Address, "id">) => {
-    if (!user) throw new Error("Not logged in");
-
-    const newAddress: Address = {
-      ...address,
-      id: Date.now().toString(),
-    };
-
-    const updatedUser = {
-      ...user,
-      addresses: [...user.addresses, newAddress],
-    };
-
-    setUser(updatedUser);
-
-    // Update in users list
-    const users = JSON.parse(localStorage.getItem("users") || "[]");
-    const index = users.findIndex((u: any) => u.id === user.id);
-    if (index !== -1) {
-      users[index] = updatedUser;
-      localStorage.setItem("users", JSON.stringify(users));
-    }
-  };
-
-  const updateAddress = async (id: string, addressUpdates: Partial<Address>) => {
-    if (!user) throw new Error("Not logged in");
-
-    const updatedAddresses = user.addresses.map((addr) =>
-      addr.id === id ? { ...addr, ...addressUpdates } : addr
-    );
-
-    const updatedUser = {
-      ...user,
-      addresses: updatedAddresses,
-    };
-
-    setUser(updatedUser);
-
-    // Update in users list
-    const users = JSON.parse(localStorage.getItem("users") || "[]");
-    const index = users.findIndex((u: any) => u.id === user.id);
-    if (index !== -1) {
-      users[index] = updatedUser;
-      localStorage.setItem("users", JSON.stringify(users));
-    }
-  };
-
-  const deleteAddress = async (id: string) => {
-    if (!user) throw new Error("Not logged in");
-
-    const updatedAddresses = user.addresses.filter((addr) => addr.id !== id);
-
-    const updatedUser = {
-      ...user,
-      addresses: updatedAddresses,
-    };
-
-    setUser(updatedUser);
-
-    // Update in users list
-    const users = JSON.parse(localStorage.getItem("users") || "[]");
-    const index = users.findIndex((u: any) => u.id === user.id);
-    if (index !== -1) {
-      users[index] = updatedUser;
-      localStorage.setItem("users", JSON.stringify(users));
-    }
-  };
-
-  const setDefaultAddress = async (id: string) => {
-    if (!user) throw new Error("Not logged in");
-
-    const updatedAddresses = user.addresses.map((addr) => ({
-      ...addr,
-      isDefault: addr.id === id,
-    }));
-
-    const updatedUser = {
-      ...user,
-      addresses: updatedAddresses,
-    };
-
-    setUser(updatedUser);
-
-    // Update in users list
-    const users = JSON.parse(localStorage.getItem("users") || "[]");
-    const index = users.findIndex((u: any) => u.id === user.id);
-    if (index !== -1) {
-      users[index] = updatedUser;
-      localStorage.setItem("users", JSON.stringify(users));
-    }
+    setUser((prev) => (prev ? { ...prev, ...updates } : prev));
   };
 
   return (
@@ -249,15 +132,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       value={{
         user,
         isLoggedIn: !!user,
+        isAdmin: user?.isAdmin ?? false,
         isLoading,
-        register,
         login,
+        loginWithGoogle,
+        register,
         logout,
         updateProfile,
-        addAddress,
-        updateAddress,
-        deleteAddress,
-        setDefaultAddress,
       }}
     >
       {children}
