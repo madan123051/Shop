@@ -105,8 +105,8 @@ export default function Footer() {
         <div className="border-t border-[#1a3a6b] mt-10 pt-6 flex flex-col sm:flex-row justify-between items-center gap-2 text-sm text-gray-500">
           <p>© {new Date().getFullYear()} NewTech Home Solutions. All rights reserved.</p>
           <div className="flex gap-4">
+            <Link href="/terms-and-conditions" className="hover:text-[#f97316] transition-colors">Terms & Conditions</Link>
             <a href="#" className="hover:text-[#f97316] transition-colors">Privacy Policy</a>
-            <a href="#" className="hover:text-[#f97316] transition-colors">Terms of Service</a>
           </div>
         </div>
       </div>
