@@ -1,37 +1,33 @@
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
 import { getAuth, type Auth } from "firebase/auth";
 import { getFirestore, type Firestore } from "firebase/firestore";
+import { getAnalytics, isSupported, type Analytics } from "firebase/analytics";
 
+// ─── Firebase Project Config ─────────────────────────────────────────────────
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  apiKey: "AIzaSyBUCydImfP1deVsxhZ2GwAvEkGbX-SZplM",
+  authDomain: "shop-aaf2f.firebaseapp.com",
+  projectId: "shop-aaf2f",
+  storageBucket: "shop-aaf2f.firebasestorage.app",
+  messagingSenderId: "671672776017",
+  appId: "1:671672776017:web:9d8a4992df91de9917cf70",
+  measurementId: "G-PDHK1M76BW",
 };
 
-// On the server during build/prerender, env vars may be absent.
-// Guard initialization so the module import never throws.
-// useEffect (client-only) ensures real Firebase calls only happen in the browser.
-const isServer = typeof window === "undefined";
-const hasConfig = !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
+// ─── Initialize Firebase (singleton) ────────────────────────────────────────
+const app: FirebaseApp =
+  getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
-let app: FirebaseApp;
-let auth: Auth;
-let db: Firestore;
+const auth: Auth = getAuth(app);
+const db: Firestore = getFirestore(app);
 
-if (!isServer || hasConfig) {
-  app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
-  auth = getAuth(app);
-  db = getFirestore(app);
-} else {
-  // Server-side stubs — never actually called because Firebase
-  // hooks live inside useEffect / user-interaction handlers.
-  app = {} as FirebaseApp;
-  auth = {} as Auth;
-  db = {} as Firestore;
+// ─── Analytics (browser-only — SSR safe) ────────────────────────────────────
+let analytics: Analytics | null = null;
+if (typeof window !== "undefined") {
+  isSupported().then((supported) => {
+    if (supported) analytics = getAnalytics(app);
+  });
 }
 
-export { auth, db };
+export { auth, db, analytics };
 export default app;
