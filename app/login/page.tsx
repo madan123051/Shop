@@ -35,8 +35,8 @@ export default function LoginPage() {
     setError("");
     setIsGoogleLoading(true);
     try {
-      await loginWithGoogle();
-      router.push("/profile");
+      const { isAdmin } = await loginWithGoogle();
+      router.push(isAdmin ? "/admin" : "/profile");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Google login failed.";
       setError(msg.replace("Firebase: ", "").replace(/\(auth\/.*\)\.?/, "").trim());
@@ -69,12 +69,12 @@ export default function LoginPage() {
             </div>
           )}
 
-          {/* Google Login */}
+          {/* Google Login — Primary */}
           <button
             type="button"
             onClick={handleGoogleLogin}
             disabled={isGoogleLoading || isLoading}
-            className="w-full flex items-center justify-center gap-3 border-2 border-gray-200 hover:border-[#f97316] hover:bg-orange-50 text-gray-700 font-semibold py-3 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed mb-5"
+            className="w-full flex items-center justify-center gap-3 border-2 border-gray-200 hover:border-[#f97316] hover:bg-orange-50 text-gray-700 font-semibold py-3.5 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed mb-5"
           >
             {isGoogleLoading ? (
               <Loader className="w-5 h-5 animate-spin text-[#f97316]" />
@@ -164,7 +164,7 @@ export default function LoginPage() {
           </form>
 
           <p className="mt-5 text-center text-xs text-gray-400">
-            Admin? Use your Firebase email &amp; password above.
+            Admin? Use your registered email &amp; password or Google account.
           </p>
         </div>
 

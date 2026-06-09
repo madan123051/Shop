@@ -49,8 +49,8 @@ interface AuthContextType {
   isLoading: boolean;
   /** Email + password login — returns { isAdmin } so caller can redirect */
   login: (email: string, password: string) => Promise<{ isAdmin: boolean }>;
-  /** Google OAuth login (customers) */
-  loginWithGoogle: () => Promise<void>;
+  /** Google OAuth login — returns { isAdmin } so caller can redirect */
+  loginWithGoogle: () => Promise<{ isAdmin: boolean }>;
   register: (email: string, password: string, firstName: string, lastName: string) => Promise<void>;
   logout: () => Promise<void>;
   updateProfile: (updates: Partial<User>) => Promise<void>;
@@ -102,9 +102,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { isAdmin: !!ADMIN_EMAIL && email === ADMIN_EMAIL };
   };
 
-  const loginWithGoogle = async () => {
+  const loginWithGoogle = async (): Promise<{ isAdmin: boolean }> => {
     const provider = new GoogleAuthProvider();
-    await signInWithPopup(auth, provider);
+    const result = await signInWithPopup(auth, provider);
+    const email = result.user.email ?? "";
+    return { isAdmin: !!ADMIN_EMAIL && email === ADMIN_EMAIL };
   };
 
   const register = async (
