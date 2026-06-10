@@ -385,7 +385,7 @@ export default function CheckoutPage() {
                     <p className="font-medium text-gray-800">{item.name}</p>
                     <p className="text-xs text-gray-500">Qty: {item.quantity}</p>
                   </div>
-                  <span className="font-semibold text-gray-900">${(item.price * item.quantity).toFixed(2)}</span>
+                  <span className="font-semibold text-gray-900">₹{(item.price * item.quantity).toLocaleString('en-IN')}</span>
                 </div>
               ))}
             </div>
@@ -393,27 +393,27 @@ export default function CheckoutPage() {
             <div className="space-y-3 text-sm border-t border-gray-100 pt-4">
               <div className="flex justify-between text-gray-600">
                 <span>Subtotal</span>
-                <span className="font-medium text-gray-800">${totalPrice.toFixed(2)}</span>
+                <span className="font-medium text-gray-800">₹{totalPrice.toLocaleString('en-IN')}</span>
               </div>
               <div className="flex justify-between text-gray-600">
                 <span>Shipping</span>
                 <span className={`font-medium ${shipping === 0 ? "text-emerald-600" : "text-gray-800"}`}>
-                  {shipping === 0 ? "FREE" : `$${shipping.toFixed(2)}`}
+                  {shipping === 0 ? "FREE" : `₹${shipping.toLocaleString('en-IN')}`}
                 </span>
               </div>
               <div className="flex justify-between text-gray-600">
                 <span>Tax (8%)</span>
-                <span className="font-medium text-gray-800">${tax.toFixed(2)}</span>
+                <span className="font-medium text-gray-800">₹{tax.toLocaleString('en-IN')}</span>
               </div>
               <div className="border-t border-gray-100 pt-3 flex justify-between text-base font-bold text-gray-900">
                 <span>Total</span>
-                <span className="text-[#f97316]">${grandTotal.toFixed(2)}</span>
+                <span className="text-[#f97316]">₹{grandTotal.toLocaleString('en-IN')}</span>
               </div>
             </div>
 
             {shipping > 0 && (
               <p className="text-xs text-amber-600 bg-amber-50 rounded-xl px-3 py-2 mt-4">
-                Add ${(50 - totalPrice).toFixed(2)} more for FREE shipping!
+                Add ₹${(50 - totalPrice).toLocaleString('en-IN')} more for FREE shipping!
               </p>
             )}
           </div>

@@ -21,28 +21,18 @@ const ProductsContext = createContext<ProductsContextType | undefined>(undefined
 const COLLECTION = "products";
 
 export function ProductsProvider({ children }: { children: React.ReactNode }) {
-  const [products, setProducts] = useState<Product[]>(defaultProducts);
+  const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [seeded, setSeeded] = useState(false);
 
   useEffect(() => {
     // Real-time listener from Firestore
     const q = query(collection(db, COLLECTION));
     const unsub = onSnapshot(q, async (snapshot) => {
-      if (snapshot.empty && !seeded) {
-        // First run: seed Firestore with default products
-        setSeeded(true);
-        for (const p of defaultProducts) {
-          const { id, ...rest } = p;
-          await addDoc(collection(db, COLLECTION), { ...rest, _localId: id, createdAt: serverTimestamp() });
-        }
-        return;
-      }
       const fetched: Product[] = snapshot.docs.map((d) => ({
         ...(d.data() as Omit<Product, "id">),
         id: d.id,
       }));
-      setProducts(fetched.length > 0 ? fetched : defaultProducts);
+      setProducts(fetched);
       setIsLoading(false);
     }, (err) => {
       console.error("Firestore products error:", err);
