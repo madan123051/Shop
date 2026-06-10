@@ -37,7 +37,7 @@ const categoryCards = [
   },
   {
     name: "Honeycomb",
-    emoji: "🍯",
+    emoji: "🏘️",
     desc: "Premium Honeycomb Blinds",
     href: "/shop?category=Honeycomb",
     bg: "from-[#1a3a6b] to-[#1e4d8c]",

@@ -4,13 +4,67 @@ import Image from "next/image";
 import Link from "next/link";
 import { useProducts } from "@/context/ProductsContext";
 import { useCart } from "@/context/CartContext";
-import { Star, ShoppingCart, ArrowLeft, Check, Package } from "lucide-react";
+import { Star, ShoppingCart, ArrowLeft, Check, Package, Heart, Share2, Eye, MessageCircle } from "lucide-react";
+import { useState, useEffect } from "react";
 
 export default function ProductPage({ params }: { params: { id: string } }) {
   const { id } = params;
-  const { products, isLoading } = useProducts();
+  const { products, isLoading, toggleLike, incrementView, addComment } = useProducts();
   const { addToCart } = useCart();
   const product = products.find((p) => p.id === id);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [isAdded, setIsAdded] = useState(false);
+  const [commentText, setCommentText] = useState("");
+  const [userRating, setUserRating] = useState(5);
+  const [userName, setUserName] = useState("");
+
+  useEffect(() => {
+    if (product) {
+      incrementView(product.id);
+    }
+  }, [product?.id]);
+
+  const handleFavorite = async () => {
+    if (!product || isFavorite) return;
+    await toggleLike(product.id, product.likes || 0);
+    setIsFavorite(true);
+  };
+
+  const handleShare = () => {
+    if (!product) return;
+    if (navigator.share) {
+      navigator.share({
+        title: product.name,
+        text: product.description,
+        url: window.location.href,
+      });
+    } else {
+      navigator.clipboard.writeText(window.location.href);
+      alert("Link copied to clipboard!");
+    }
+  };
+
+  const handleAddToCart = () => {
+    if (!product) return;
+    addToCart(product);
+    setIsAdded(true);
+    setTimeout(() => setIsAdded(false), 2000);
+  };
+
+  const handleSubmitComment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!product || !commentText.trim() || !userName.trim()) return;
+    
+    await addComment(product.id, {
+      user: userName,
+      text: commentText,
+      rating: userRating
+    });
+    
+    setCommentText("");
+    setUserName("");
+    setUserRating(5);
+  };
 
   if (isLoading) {
     return (
@@ -132,6 +186,39 @@ export default function ProductPage({ params }: { params: { id: string } }) {
             </div>
           )}
 
+          {/* Social Stats & Interaction */}
+          <div className="flex items-center gap-6 mb-8 pb-6 border-b border-gray-100">
+            <div className="flex items-center gap-4 text-gray-500">
+              <div className="flex items-center gap-1.5">
+                <Heart className="w-4 h-4" />
+                <span className="text-sm font-bold">{product.likes || 0}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Eye className="w-4 h-4" />
+                <span className="text-sm font-bold">{product.views || 0}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Share2 className="w-4 h-4" />
+                <span className="text-sm font-bold">{product.shares || 0}</span>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-2 ml-auto">
+              <button 
+                onClick={handleFavorite}
+                className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${isFavorite ? "bg-red-500 text-white" : "bg-gray-50 text-gray-400 hover:text-red-500"}`}
+              >
+                <Heart className={`w-5 h-5 ${isFavorite ? "fill-current" : ""}`} />
+              </button>
+              <button 
+                onClick={handleShare}
+                className="w-10 h-10 bg-gray-50 text-gray-400 hover:text-[#f97316] rounded-full flex items-center justify-center transition-all"
+              >
+                <Share2 className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+
           {/* Stock */}
           <div className="flex items-center gap-2 mb-6">
             <Package className="w-4 h-4 text-emerald-500" />
@@ -143,19 +230,113 @@ export default function ProductPage({ params }: { params: { id: string } }) {
           {/* Buttons */}
           <div className="flex gap-3">
             <button
-              onClick={() => addToCart(product)}
+              onClick={handleAddToCart}
               disabled={!product.inStock}
-              className="flex-1 flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-200 text-white font-bold py-4 rounded-2xl transition-colors text-base shadow-lg shadow-indigo-200"
+              className={`flex-1 flex items-center justify-center gap-2 font-bold py-4 rounded-2xl transition-all text-base shadow-lg ${
+                isAdded 
+                  ? "bg-emerald-500 text-white shadow-emerald-200" 
+                  : "bg-[#1a3a6b] hover:bg-[#f97316] text-white shadow-blue-100"
+              }`}
             >
-              <ShoppingCart className="w-5 h-5" />
-              Add to Cart
+              {isAdded ? <Check className="w-5 h-5" /> : <ShoppingCart className="w-5 h-5" />}
+              {isAdded ? "Added to Cart" : "Add to Cart"}
             </button>
             <Link
               href="/cart"
-              className="flex items-center justify-center gap-2 border-2 border-indigo-600 text-indigo-600 hover:bg-indigo-50 font-bold px-6 py-4 rounded-2xl transition-colors"
+              className="flex items-center justify-center gap-2 border-2 border-[#1a3a6b] text-[#1a3a6b] hover:bg-gray-50 font-bold px-6 py-4 rounded-2xl transition-colors"
             >
               View Cart
             </Link>
+          </div>
+        </div>
+      </div>
+
+      {/* Comments & Reviews Section */}
+      <div className="mt-16 pt-16 border-t border-gray-100">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+          {/* Review Summary */}
+          <div className="lg:col-span-1">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Customer Reviews</h2>
+            <div className="bg-gray-50 rounded-3xl p-8 text-center">
+              <p className="text-5xl font-black text-gray-900 mb-2">{product.rating}</p>
+              <div className="flex justify-center mb-2">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <Star key={star} className={`w-5 h-5 ${star <= Math.round(product.rating) ? "text-amber-400 fill-amber-400" : "text-gray-200 fill-gray-200"}`} />
+                ))}
+              </div>
+              <p className="text-sm text-gray-500 font-medium">Based on {product.reviews} reviews</p>
+            </div>
+
+            {/* Add Review Form */}
+            <form onSubmit={handleSubmitComment} className="mt-8 space-y-4">
+              <h3 className="font-bold text-gray-800">Write a Review</h3>
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Your Rating</label>
+                <div className="flex gap-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button key={star} type="button" onClick={() => setUserRating(star)} className="focus:outline-none">
+                      <Star className={`w-6 h-6 ${star <= userRating ? "text-amber-400 fill-amber-400" : "text-gray-200"}`} />
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <input 
+                type="text" 
+                placeholder="Your Name" 
+                value={userName}
+                onChange={(e) => setUserName(e.target.value)}
+                required
+                className="w-full px-4 py-3 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-[#f97316] text-sm"
+              />
+              <textarea 
+                placeholder="Share your experience..." 
+                rows={4}
+                value={commentText}
+                onChange={(e) => setCommentText(e.target.value)}
+                required
+                className="w-full px-4 py-3 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-[#f97316] text-sm"
+              />
+              <button type="submit" className="w-full bg-[#1a3a6b] text-white font-bold py-3 rounded-2xl hover:bg-[#f97316] transition-all shadow-lg">
+                Submit Review
+              </button>
+            </form>
+          </div>
+
+          {/* Comments List */}
+          <div className="lg:col-span-2">
+            <div className="flex items-center justify-between mb-8">
+              <h3 className="text-xl font-bold text-gray-900">Latest Comments</h3>
+              <span className="text-sm text-gray-500 font-medium">{product.commentsList?.length || 0} Comments</span>
+            </div>
+            
+            <div className="space-y-8">
+              {product.commentsList && product.commentsList.length > 0 ? (
+                product.commentsList.map((comment, i) => (
+                  <div key={i} className="flex gap-4">
+                    <div className="w-12 h-12 bg-orange-100 rounded-2xl flex items-center justify-center text-[#f97316] font-bold shrink-0">
+                      {comment.user.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-1">
+                        <h4 className="font-bold text-gray-900">{comment.user}</h4>
+                        <span className="text-xs text-gray-400">{new Date(comment.date).toLocaleDateString()}</span>
+                      </div>
+                      <div className="flex mb-2">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star key={star} className={`w-3 h-3 ${star <= comment.rating ? "text-amber-400 fill-amber-400" : "text-gray-200 fill-gray-200"}`} />
+                        ))}
+                      </div>
+                      <p className="text-gray-600 text-sm leading-relaxed">{comment.text}</p>
+                    </div>
+                  </div>
+                )).reverse()
+              ) : (
+                <div className="text-center py-12 bg-gray-50 rounded-3xl">
+                  <MessageCircle className="w-12 h-12 text-gray-200 mx-auto mb-3" />
+                  <p className="text-gray-400 text-sm">No reviews yet. Be the first to share your thoughts!</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
