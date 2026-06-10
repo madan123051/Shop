@@ -72,7 +72,7 @@ interface AuthContextType {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL ?? "";
+const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL ?? "naveen@mail.com";
 const LOCAL_FIELDS = [
   "firstName",
   "lastName",

@@ -318,11 +318,31 @@ export default function AdminDashboard() {
     }
     
     const features = Array.isArray(formData.features) ? formData.features : (formData.features || "").split('\n').filter((f: string) => f.trim());
-    const payload = { 
-      ...formData, 
-      features,
-      price: formData.isCustomizable ? 0 : Number(formData.price),
-      baseRate: formData.isCustomizable ? Number(formData.baseRate) : 0,
+    const payload = {
+      name: formData.name || "",
+      price: formData.isCustomizable ? 0 : Number(formData.price || 0),
+      originalPrice: formData.originalPrice ? Number(formData.originalPrice) : null,
+      category: formData.category || "",
+      subCategory: formData.subCategory || "",
+      image: formData.image || "",
+      images: formData.images || [],
+      video: formData.video || "",
+      rating: Number(formData.rating || 4.5),
+      reviews: Number(formData.reviews || 0),
+      description: formData.description || "",
+      features: features,
+      badge: formData.badge || null,
+      inStock: Boolean(formData.inStock),
+      festivalOffer: formData.festivalOffer || "",
+      discountPercent: formData.discountPercent ? Number(formData.discountPercent) : null,
+      offerLabel: formData.offerLabel || "",
+      offerValidTill: formData.offerValidTill || "",
+      isCustomizable: Boolean(formData.isCustomizable),
+      baseRate: formData.isCustomizable ? Number(formData.baseRate || 0) : 0,
+      unit: formData.unit || "ft",
+      minimumArea: Number(formData.minimumArea || 0),
+      installationCost: Number(formData.installationCost || 0),
+      customOptions: formData.customOptions || [],
       updatedAt: new Date().toISOString()
     };
 
