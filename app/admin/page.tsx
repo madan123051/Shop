@@ -50,6 +50,14 @@ type AdminOrderStatus = "Pending" | "Processing" | "Shipped" | "Delivered" | "Ca
 
 // ─── Display Mappings ─────────────────────────────────────────────────────────
 
+const CATEGORY_MAP: Record<string, string[]> = {
+  "Blinds": ["Roller Blinds", "Zebra Blinds", "Wooden Blinds", "Printed Blinds"],
+  "Pleated Mesh": ["Polyster Pleated Mesh", "SS 304 Pleated Mesh"],
+  "Honeycomb": ["Honeycomb Blackout", "Honeycomb 2in1"],
+  "Partition & Security": ["PVC Doors", "Security Mesh", "Crystal Doors"],
+};
+const MAIN_CATEGORIES = Object.keys(CATEGORY_MAP);
+
 const STATUS_DISPLAY: Record<ContextOrderStatus, AdminOrderStatus> = {
   pending: "Pending",
   confirmed: "Processing",
@@ -276,22 +284,26 @@ export default function AdminDashboard() {
     setFormData(p);
   };
 
-  const handleSaveProduct = () => {
+  const handleSaveProduct = async () => {
     if (!formData.name || !formData.category || !formData.price) {
-      alert("Please fill in required fields");
+      alert("Please fill in required fields: Name, Category, and Price");
       return;
     }
     
     const features = Array.isArray(formData.features) ? formData.features : (formData.features || "").split('\n').filter((f: string) => f.trim());
     const payload = { ...formData, features };
 
-    if (productModal.mode === "add") {
-      addProduct(payload);
-    } else if (productModal.mode === "edit") {
-      updateProduct(formData.id, payload);
+    try {
+      if (productModal.mode === "add") {
+        await addProduct(payload);
+      } else if (productModal.mode === "edit") {
+        await updateProduct(formData.id, payload);
+      }
+      setProductModal({ open: false, mode: "add" });
+    } catch (err) {
+      console.error("Save product error:", err);
+      alert("Failed to save product. Please check your connection and try again.");
     }
-
-    setProductModal({ open: false, mode: "add" });
   };
 
   const handleImageUpload = async (file: File) => {
@@ -614,9 +626,12 @@ export default function AdminDashboard() {
                     className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-[#f97316]" />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">Category *</label>
-                  <input type="text" value={formData.category || ""} onChange={e => setFormData({ ...formData, category: e.target.value })}
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-[#f97316]" />
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Main Category *</label>
+                  <select value={formData.category || ""} onChange={e => setFormData({ ...formData, category: e.target.value, subCategory: "" })}
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-[#f97316]">
+                    <option value="">Select category…</option>
+                    {MAIN_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1">Price (₹) *</label>
@@ -639,6 +654,17 @@ export default function AdminDashboard() {
                     className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-[#f97316]" />
                 </div>
               </div>
+              {/* Sub-Category */}
+              {formData.category && (
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Product Type</label>
+                  <select value={formData.subCategory || ""} onChange={e => setFormData({ ...formData, subCategory: e.target.value })}
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-[#f97316]">
+                    <option value="">Select product type…</option>
+                    {(CATEGORY_MAP[formData.category] || []).map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1">Product Image</label>
                 <div className="space-y-2">

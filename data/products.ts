@@ -13,6 +13,7 @@ export interface Product {
   features: string[];
   badge?: "Sale" | "New" | "Hot" | "Best Seller";
   inStock: boolean;
+  subCategory?: string;
 }
 
 export const categories: string[] = [
@@ -21,6 +22,13 @@ export const categories: string[] = [
   "Honeycomb",
   "Partition & Security",
 ];
+
+export const CATEGORY_MAP: Record<string, string[]> = {
+  "Blinds": ["Roller Blinds", "Zebra Blinds", "Wooden Blinds", "Printed Blinds"],
+  "Pleated Mesh": ["Polyster Pleated Mesh", "SS 304 Pleated Mesh"],
+  "Honeycomb": ["Honeycomb Blackout", "Honeycomb 2in1"],
+  "Partition & Security": ["PVC Doors", "Security Mesh", "Crystal Doors"],
+};
 
 export const products: Product[] = [
   // ─── BLINDS ───────────────────────────────────────────────────────────────
