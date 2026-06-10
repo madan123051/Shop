@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import {
   collection, doc, addDoc, updateDoc, onSnapshot,
-  query, orderBy, serverTimestamp, Timestamp,
+  query, orderBy, serverTimestamp, Timestamp, setDoc,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { CartItem } from "@/context/CartContext";
@@ -75,6 +75,14 @@ export function OrderProvider({ children }: { children: React.ReactNode }) {
           freeDeliveryThreshold: 5000
         });
       }
+    }, (err) => {
+      console.error("Delivery settings snapshot error:", err);
+      // Fallback to defaults on error to prevent UI disappearance
+      setDeliverySettings({
+        locations: [],
+        selfPickupAvailable: true,
+        freeDeliveryThreshold: 5000
+      });
     });
     return () => unsub();
   }, []);
@@ -132,7 +140,7 @@ export function OrderProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateDeliverySettings = async (settings: DeliverySettings) => {
-    await updateDoc(doc(db, "settings", "delivery"), settings as any);
+    await setDoc(doc(db, "settings", "delivery"), settings as any, { merge: true });
   };
 
   return (
