@@ -413,7 +413,7 @@ export default function CheckoutPage() {
 
             {shipping > 0 && (
               <p className="text-xs text-amber-600 bg-amber-50 rounded-xl px-3 py-2 mt-4">
-                Add ₹${(50 - totalPrice).toLocaleString('en-IN')} more for FREE shipping!
+                Add ₹{(50 - totalPrice).toLocaleString('en-IN')} more for FREE shipping!
               </p>
             )}
           </div>

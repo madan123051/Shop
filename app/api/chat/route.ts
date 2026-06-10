@@ -25,7 +25,7 @@ HONEYCOMB:
 • Honeycomb Blackout — ₹2,199 (MRP ₹2,799) | New | 100% blackout, thermal insulation, noise reduction
 • 2-in-1 Pleated + Honeycomb — ₹2,799 (MRP ₹3,499) | New | Insect mesh + blackout in one frame
 
-PARTITION & SECURITY:
+PARTITIONS & DOORS:
 • PVC Partition — ₹3,499 (MRP ₹4,500) | Modular, no civil work, soundproof options
 • Security Mesh — ₹2,999 (MRP ₹3,799) | Hot | 316-grade SS, anti-intrusion, transparent
 • Crystal Partition Door — ₹5,999 (MRP ₹7,500) | New | Tempered glass, slim aluminium, sliding or hinged

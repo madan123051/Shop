@@ -20,14 +20,14 @@ export const categories: string[] = [
   "Blinds",
   "Pleated Mesh",
   "Honeycomb",
-  "Partition & Security",
+  "Partitions & Doors",
 ];
 
 export const CATEGORY_MAP: Record<string, string[]> = {
   "Blinds": ["Roller Blinds", "Zebra Blinds", "Wooden Blinds", "Printed Blinds"],
   "Pleated Mesh": ["Polyster Pleated Mesh", "SS 304 Pleated Mesh"],
   "Honeycomb": ["Honeycomb Blackout", "Honeycomb 2in1"],
-  "Partition & Security": ["PVC Doors", "Security Mesh", "Crystal Doors"],
+  "Partitions & Doors": ["PVC Doors", "Security Mesh", "Crystal Doors"],
 };
 
 export const products: Product[] = [
@@ -210,7 +210,7 @@ export const products: Product[] = [
     name: "PVC Partition",
     price: 3499,
     originalPrice: 4500,
-    category: "Partition & Security",
+    category: "Partitions & Doors",
     image: "https://placehold.co/400x300/1a3a6b/ffffff?text=PVC+Partition",
     rating: 4.5,
     reviews: 56,
@@ -230,7 +230,7 @@ export const products: Product[] = [
     name: "Security Mesh",
     price: 2999,
     originalPrice: 3799,
-    category: "Partition & Security",
+    category: "Partitions & Doors",
     image: "https://placehold.co/400x300/1a3a6b/ffffff?text=Security+Mesh",
     rating: 4.8,
     reviews: 92,
@@ -251,7 +251,7 @@ export const products: Product[] = [
     name: "Crystal Partition Door",
     price: 5999,
     originalPrice: 7500,
-    category: "Partition & Security",
+    category: "Partitions & Doors",
     image: "https://placehold.co/400x300/1a3a6b/ffffff?text=Crystal+Partition+Door",
     rating: 4.9,
     reviews: 33,

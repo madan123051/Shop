@@ -43,10 +43,10 @@ const categoryCards = [
     bg: "from-[#1a3a6b] to-[#1e4d8c]",
   },
   {
-    name: "Partition & Security",
+    name: "Partitions & Doors",
     emoji: "🚪",
     desc: "PVC, Security Mesh & Crystal Doors",
-    href: "/shop?category=Partition+%26+Security",
+    href: "/shop?category=Partitions+%26+Doors",
     bg: "from-[#f97316] to-[#ea580c]",
   },
 ];

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, Suspense } from "react";
+import { useState, useMemo, Suspense, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { useProducts } from "@/context/ProductsContext";
 import ProductCard from "@/components/ProductCard";
@@ -14,13 +14,30 @@ function ShopContent() {
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState(initialCategory);
   const [sortBy, setSortBy] = useState("default");
+  const [selectedSubCategory, setSelectedSubCategory] = useState("All");
+
+  useEffect(() => {
+    setSelectedSubCategory("All");
+  }, [selectedCategory]);
 
   const allCategories = ["All", ...categories];
+
+  const CATEGORY_MAP: Record<string, string[]> = {
+    "Blinds": ["Roller Blinds", "Zebra Blinds", "Wooden Blinds", "Printed Blinds"],
+    "Pleated Mesh": ["Polyster Pleated Mesh", "SS 304 Pleated Mesh"],
+    "Honeycomb": ["Honeycomb Blackout", "Honeycomb 2in1"],
+    "Partitions & Doors": ["PVC Doors", "Security Mesh", "Crystal Doors"],
+  };
+
+  const subCategories = selectedCategory !== "All" ? ["All", ...(CATEGORY_MAP[selectedCategory] || [])] : [];
 
   const filtered = useMemo(() => {
     let result = [...products];
     if (selectedCategory !== "All") {
       result = result.filter((p) => p.category === selectedCategory);
+      if (selectedSubCategory !== "All") {
+        result = result.filter((p) => p.name === selectedSubCategory || p.subCategory === selectedSubCategory);
+      }
     }
     if (search.trim()) {
       result = result.filter((p) =>
@@ -83,20 +100,41 @@ function ShopContent() {
 
       {/* Category Tabs */}
       {allCategories.length > 1 && (
-        <div className="flex gap-2 flex-wrap mb-8">
-          {allCategories.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setSelectedCategory(cat)}
-              className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-                selectedCategory === cat
-                  ? "bg-indigo-600 text-white shadow-md"
-                  : "bg-white text-gray-600 border border-gray-200 hover:border-indigo-300 hover:text-indigo-600"
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
+        <div className="space-y-4 mb-8">
+          <div className="flex gap-2 flex-wrap">
+            {allCategories.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setSelectedCategory(cat)}
+                className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                  selectedCategory === cat
+                    ? "bg-[#1a3a6b] text-white shadow-md"
+                    : "bg-white text-gray-600 border border-gray-200 hover:border-[#1a3a6b] hover:text-[#1a3a6b]"
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+
+          {subCategories.length > 1 && (
+            <div className="flex gap-2 flex-wrap p-3 bg-gray-50 rounded-2xl border border-gray-100">
+              <span className="text-xs font-bold text-gray-400 uppercase tracking-widest w-full mb-1 ml-1">Sub Categories</span>
+              {subCategories.map((sub) => (
+                <button
+                  key={sub}
+                  onClick={() => setSelectedSubCategory(sub)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                    selectedSubCategory === sub
+                      ? "bg-[#f97316] text-white shadow-sm"
+                      : "bg-white text-gray-500 border border-gray-200 hover:border-[#f97316] hover:text-[#f97316]"
+                  }`}
+                >
+                  {sub}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

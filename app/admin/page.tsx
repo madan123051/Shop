@@ -54,7 +54,7 @@ const CATEGORY_MAP: Record<string, string[]> = {
   "Blinds": ["Roller Blinds", "Zebra Blinds", "Wooden Blinds", "Printed Blinds"],
   "Pleated Mesh": ["Polyster Pleated Mesh", "SS 304 Pleated Mesh"],
   "Honeycomb": ["Honeycomb Blackout", "Honeycomb 2in1"],
-  "Partition & Security": ["PVC Doors", "Security Mesh", "Crystal Doors"],
+  "Partitions & Doors": ["PVC Doors", "Security Mesh", "Crystal Doors"],
 };
 const MAIN_CATEGORIES = Object.keys(CATEGORY_MAP);
 
