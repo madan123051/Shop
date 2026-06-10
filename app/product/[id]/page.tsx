@@ -48,9 +48,10 @@ export default function ProductPage({ params }: { params: { id: string } }) {
         if (selectedId) {
           const option = group.options.find(o => o.id === selectedId);
           if (option) {
-            if (option.type === "fixed") total += option.value;
-            else if (option.type === "percentage") total += (total * option.value) / 100;
-            else if (option.type === "area-based") total += option.value * effectiveArea;
+            const val = Number(option.value);
+            if (option.type === "fixed") total += val;
+            else if (option.type === "percentage") total += (total * val) / 100;
+            else if (option.type === "area-based") total += val * effectiveArea;
           }
         }
       });
@@ -58,7 +59,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
 
     // Installation
     if (selectedOptions["installation"] === "yes") {
-      total += product.installationCost || 0;
+      total += Number(product.installationCost || 0);
     }
 
     setCalculatedPrice(Math.round(total));
