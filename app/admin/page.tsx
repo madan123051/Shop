@@ -175,15 +175,7 @@ export default function AdminDashboard() {
     setQuotes(prev => prev.filter(q => q.id !== id));
   };
 
-  const handleDeleteProduct = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this product? This action cannot be undone.")) return;
-    try {
-      await deleteProduct(id);
-    } catch (err) {
-      console.error("Delete product error:", err);
-      alert("Failed to delete product. Please check your connection and try again.");
-    }
-  };
+
 
   const sendReply = async () => {
     if (!replyModal.quote || !replyText.trim()) return;
