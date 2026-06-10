@@ -58,3 +58,15 @@ export const CATEGORY_HIERARCHY: Record<string, string[]> = {
 export const categories: string[] = Object.keys(CATEGORY_HIERARCHY);
 
 export const products: Product[] = [];
+
+export interface DeliveryLocation {
+  id: string;
+  name: string; // City or State name
+  charge: number;
+}
+
+export interface DeliverySettings {
+  locations: DeliveryLocation[];
+  selfPickupAvailable: boolean;
+  freeDeliveryThreshold?: number;
+}

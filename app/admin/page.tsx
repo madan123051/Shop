@@ -10,7 +10,7 @@ import {
   DollarSign, TrendingUp, Clock, CheckCircle, Truck, XCircle,
   AlertCircle, Search, LogOut, Menu, BarChart2, ArrowUpRight,
   Star, Bell, Edit2, Trash2, Plus, Eye, X, Upload,
-  FileText, MessageSquare, Reply, Send, RefreshCw, ExternalLink, ShieldAlert,
+  FileText, MessageSquare, Reply, Send, RefreshCw, ExternalLink, ShieldAlert, MapPin,
 } from "lucide-react";
 import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 import { storage } from "@/lib/firebase";
@@ -127,10 +127,17 @@ function StatCard({ label, value, sub, icon, color, trend }: {
 export default function AdminDashboard() {
   const { user, logout } = useAuth();
   const router = useRouter();
-  const { orders, updateOrderStatus } = useOrder();
+  const { orders, updateOrderStatus, deliverySettings, updateDeliverySettings } = useOrder();
   const { products, addProduct, updateProduct, deleteProduct, categories } = useProducts();
 
   const [activeTab, setActiveTab] = useState<Tab>("overview");
+  const [deliveryFormData, setDeliveryFormData] = useState<any>(null);
+
+  useEffect(() => {
+    if (deliverySettings) {
+      setDeliveryFormData(deliverySettings);
+    }
+  }, [deliverySettings]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [orderSearch, setOrderSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"All" | AdminOrderStatus>("All");
@@ -1351,6 +1358,80 @@ export default function AdminDashboard() {
           ))}
         </div>
         <button className="mt-4 px-5 py-2.5 bg-[#1a3a6b] hover:bg-[#15306b] text-white text-sm font-bold rounded-xl transition-colors">Save Changes</button>
+      </div>
+
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+        <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><Truck className="w-5 h-5 text-[#f97316]" />Delivery & Pickup Settings</h3>
+        
+        {deliveryFormData && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100">
+              <div>
+                <p className="text-sm font-bold text-gray-800">Self Pickup Option</p>
+                <p className="text-xs text-gray-500">Allow customers to pick up orders themselves for free</p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" checked={deliveryFormData.selfPickupAvailable} onChange={e => setDeliveryFormData({...deliveryFormData, selfPickupAvailable: e.target.checked})} className="sr-only peer" />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#f97316]"></div>
+              </label>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Free Delivery Threshold (₹)</label>
+                <input type="number" value={deliveryFormData.freeDeliveryThreshold || ""} onChange={e => setDeliveryFormData({...deliveryFormData, freeDeliveryThreshold: parseFloat(e.target.value)})} className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-[#f97316]" placeholder="e.g. 5000" />
+              </div>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-sm font-bold text-gray-800">Location Based Charges</h4>
+                <button onClick={() => setDeliveryFormData({...deliveryFormData, locations: [...deliveryFormData.locations, { id: Date.now().toString(), name: "", charge: 0 }]})} className="text-xs font-bold text-[#f97316] hover:underline">+ Add Location</button>
+              </div>
+              <div className="space-y-2">
+                {deliveryFormData.locations.map((loc: any, idx: number) => (
+                  <div key={loc.id} className="flex items-center gap-3 bg-gray-50 p-3 rounded-xl border border-gray-100">
+                    <MapPin className="w-4 h-4 text-gray-400 shrink-0" />
+                    <input type="text" value={loc.name} onChange={e => {
+                      const newLocs = [...deliveryFormData.locations];
+                      newLocs[idx].name = e.target.value;
+                      setDeliveryFormData({...deliveryFormData, locations: newLocs});
+                    }} className="flex-1 bg-transparent border-none p-0 text-sm focus:ring-0" placeholder="Location Name (e.g. Delhi, Gurgaon)" />
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-bold text-gray-400">₹</span>
+                      <input type="number" value={loc.charge} onChange={e => {
+                        const newLocs = [...deliveryFormData.locations];
+                        newLocs[idx].charge = parseFloat(e.target.value);
+                        setDeliveryFormData({...deliveryFormData, locations: newLocs});
+                      }} className="w-20 bg-transparent border-none p-0 text-sm font-bold text-right focus:ring-0" placeholder="0" />
+                    </div>
+                    <button onClick={() => setDeliveryFormData({...deliveryFormData, locations: deliveryFormData.locations.filter((_: any, i: number) => i !== idx)})} className="p-1 hover:bg-red-50 text-gray-400 hover:text-red-500 rounded-lg transition-colors">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+                {deliveryFormData.locations.length === 0 && (
+                  <p className="text-xs text-gray-400 text-center py-4 italic">No specific locations added. Default delivery rules will apply.</p>
+                )}
+              </div>
+            </div>
+
+            <button 
+              onClick={async () => {
+                try {
+                  await updateDeliverySettings(deliveryFormData);
+                  alert("Delivery settings updated successfully!");
+                } catch (err) {
+                  console.error(err);
+                  alert("Failed to update delivery settings.");
+                }
+              }} 
+              className="w-full px-5 py-3 bg-[#f97316] hover:bg-[#ea580c] text-white text-sm font-bold rounded-xl transition-all shadow-lg shadow-orange-100"
+            >
+              Save Delivery Settings
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

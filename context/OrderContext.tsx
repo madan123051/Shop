@@ -7,6 +7,7 @@ import {
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { CartItem } from "@/context/CartContext";
+import { DeliverySettings, DeliveryLocation } from "@/data/products";
 
 export interface Order {
   id: string;
@@ -28,6 +29,8 @@ export interface Order {
     phone: string;
   };
   email: string;
+  deliveryMethod: "delivery" | "pickup";
+  deliveryLocationId?: string;
   createdAt: string;
   updatedAt: string;
   estimatedDelivery?: string;
@@ -42,6 +45,8 @@ interface OrderContextType {
   getUserOrders: (userId: string) => Order[];
   updateOrderStatus: (id: string, status: Order["status"]) => Promise<void>;
   cancelOrder: (id: string) => Promise<void>;
+  deliverySettings: DeliverySettings | null;
+  updateDeliverySettings: (settings: DeliverySettings) => Promise<void>;
 }
 
 const OrderContext = createContext<OrderContextType | undefined>(undefined);
@@ -55,7 +60,24 @@ function toISO(val: unknown): string {
 
 export function OrderProvider({ children }: { children: React.ReactNode }) {
   const [orders, setOrders] = useState<Order[]>([]);
+  const [deliverySettings, setDeliverySettings] = useState<DeliverySettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, "settings", "delivery"), (doc) => {
+      if (doc.exists()) {
+        setDeliverySettings(doc.data() as DeliverySettings);
+      } else {
+        // Default settings
+        setDeliverySettings({
+          locations: [],
+          selfPickupAvailable: true,
+          freeDeliveryThreshold: 5000
+        });
+      }
+    });
+    return () => unsub();
+  }, []);
 
   useEffect(() => {
     const q = query(collection(db, COLLECTION), orderBy("createdAt", "desc"));
@@ -109,9 +131,23 @@ export function OrderProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const updateDeliverySettings = async (settings: DeliverySettings) => {
+    await updateDoc(doc(db, "settings", "delivery"), settings as any);
+  };
+
   return (
     <OrderContext.Provider
-      value={{ orders, isLoading, createOrder, getOrderById, getUserOrders, updateOrderStatus, cancelOrder }}
+      value={{ 
+        orders, 
+        isLoading, 
+        createOrder, 
+        getOrderById, 
+        getUserOrders, 
+        updateOrderStatus, 
+        cancelOrder,
+        deliverySettings,
+        updateDeliverySettings
+      }}
     >
       {children}
     </OrderContext.Provider>
