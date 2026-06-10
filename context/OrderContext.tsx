@@ -1,6 +1,11 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
+import {
+  collection, doc, addDoc, updateDoc, onSnapshot,
+  query, orderBy, serverTimestamp, Timestamp,
+} from "firebase/firestore";
+import { db } from "@/lib/firebase";
 import { CartItem } from "@/context/CartContext";
 
 export interface Order {
@@ -40,60 +45,59 @@ interface OrderContextType {
 }
 
 const OrderContext = createContext<OrderContextType | undefined>(undefined);
+const COLLECTION = "orders";
+
+function toISO(val: unknown): string {
+  if (!val) return new Date().toISOString();
+  if (val instanceof Timestamp) return val.toDate().toISOString();
+  return String(val);
+}
 
 export function OrderProvider({ children }: { children: React.ReactNode }) {
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load orders from localStorage on mount
   useEffect(() => {
-    const stored = localStorage.getItem("orders");
-    if (stored) {
-      try {
-        setOrders(JSON.parse(stored));
-      } catch (e) {
-        console.error("Failed to parse orders data", e);
-      }
-    }
-    setIsLoading(false);
+    const q = query(collection(db, COLLECTION), orderBy("createdAt", "desc"));
+    const unsub = onSnapshot(q, (snapshot) => {
+      const fetched: Order[] = snapshot.docs.map((d) => {
+        const data = d.data();
+        return {
+          ...(data as Omit<Order, "id" | "createdAt" | "updatedAt">),
+          id: d.id,
+          createdAt: toISO(data.createdAt),
+          updatedAt: toISO(data.updatedAt),
+        } as Order;
+      });
+      setOrders(fetched);
+      setIsLoading(false);
+    }, (err) => {
+      console.error("Firestore orders error:", err);
+      setIsLoading(false);
+    });
+    return () => unsub();
   }, []);
 
-  // Save orders to localStorage whenever they change
-  useEffect(() => {
-    localStorage.setItem("orders", JSON.stringify(orders));
-  }, [orders]);
-
-  const createOrder = async (orderData: Omit<Order, "id" | "createdAt" | "updatedAt">) => {
-    const newOrder: Order = {
+  const createOrder = async (orderData: Omit<Order, "id" | "createdAt" | "updatedAt">): Promise<Order> => {
+    const now = new Date().toISOString();
+    const payload = {
       ...orderData,
-      id: `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      status: "confirmed",
-      estimatedDelivery: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      status: "confirmed" as const,
       trackingNumber: `TRK${Date.now()}`,
+      estimatedDelivery: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
     };
-
-    setOrders((prev) => [newOrder, ...prev]);
-    return newOrder;
+    const ref = await addDoc(collection(db, COLLECTION), payload);
+    return { ...orderData, id: ref.id, createdAt: now, updatedAt: now, status: "confirmed" };
   };
 
-  const getOrderById = (id: string): Order | undefined => {
-    return orders.find((order) => order.id === id);
-  };
+  const getOrderById = (id: string) => orders.find((o) => o.id === id);
 
-  const getUserOrders = (userId: string): Order[] => {
-    return orders.filter((order) => order.userId === userId);
-  };
+  const getUserOrders = (userId: string) => orders.filter((o) => o.userId === userId);
 
   const updateOrderStatus = async (id: string, status: Order["status"]) => {
-    setOrders((prev) =>
-      prev.map((order) =>
-        order.id === id
-          ? { ...order, status, updatedAt: new Date().toISOString() }
-          : order
-      )
-    );
+    await updateDoc(doc(db, COLLECTION, id), { status, updatedAt: serverTimestamp() });
   };
 
   const cancelOrder = async (id: string) => {
@@ -107,15 +111,7 @@ export function OrderProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <OrderContext.Provider
-      value={{
-        orders,
-        isLoading,
-        createOrder,
-        getOrderById,
-        getUserOrders,
-        updateOrderStatus,
-        cancelOrder,
-      }}
+      value={{ orders, isLoading, createOrder, getOrderById, getUserOrders, updateOrderStatus, cancelOrder }}
     >
       {children}
     </OrderContext.Provider>

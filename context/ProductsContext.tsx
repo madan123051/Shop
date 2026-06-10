@@ -1,61 +1,76 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
+import {
+  collection, doc, getDocs, addDoc, updateDoc, deleteDoc,
+  onSnapshot, query, orderBy, serverTimestamp,
+} from "firebase/firestore";
+import { db } from "@/lib/firebase";
 import { products as defaultProducts, Product } from "@/data/products";
 
 interface ProductsContextType {
   products: Product[];
   categories: string[];
-  addProduct: (product: Omit<Product, "id">) => void;
-  updateProduct: (id: string, updates: Partial<Product>) => void;
-  deleteProduct: (id: string) => void;
+  isLoading: boolean;
+  addProduct: (product: Omit<Product, "id">) => Promise<void>;
+  updateProduct: (id: string, updates: Partial<Product>) => Promise<void>;
+  deleteProduct: (id: string) => Promise<void>;
 }
 
 const ProductsContext = createContext<ProductsContextType | undefined>(undefined);
-const STORAGE_KEY = "nt_products_v1";
+const COLLECTION = "products";
 
 export function ProductsProvider({ children }: { children: React.ReactNode }) {
   const [products, setProducts] = useState<Product[]>(defaultProducts);
+  const [isLoading, setIsLoading] = useState(true);
+  const [seeded, setSeeded] = useState(false);
 
-  // Hydrate from localStorage on first load (overrides static seed)
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored) as Product[];
-        if (Array.isArray(parsed) && parsed.length > 0) setProducts(parsed);
-      } catch { /* ignore corrupt data */ }
-    }
-  }, []);
+    // Real-time listener from Firestore
+    const q = query(collection(db, COLLECTION));
+    const unsub = onSnapshot(q, async (snapshot) => {
+      if (snapshot.empty && !seeded) {
+        // First run: seed Firestore with default products
+        setSeeded(true);
+        for (const p of defaultProducts) {
+          const { id, ...rest } = p;
+          await addDoc(collection(db, COLLECTION), { ...rest, _localId: id, createdAt: serverTimestamp() });
+        }
+        return;
+      }
+      const fetched: Product[] = snapshot.docs.map((d) => ({
+        ...(d.data() as Omit<Product, "id">),
+        id: d.id,
+      }));
+      setProducts(fetched.length > 0 ? fetched : defaultProducts);
+      setIsLoading(false);
+    }, (err) => {
+      console.error("Firestore products error:", err);
+      // Fall back to static data on error
+      setProducts(defaultProducts);
+      setIsLoading(false);
+    });
 
-  // Persist every change to localStorage
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(products));
-  }, [products]);
+    return () => unsub();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const categories = Array.from(new Set(products.map((p) => p.category)));
 
-  const addProduct = (p: Omit<Product, "id">) => {
-    const newProduct: Product = {
-      ...p,
-      id: `prod-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-    };
-    setProducts((prev) => [newProduct, ...prev]);
+  const addProduct = async (p: Omit<Product, "id">) => {
+    await addDoc(collection(db, COLLECTION), { ...p, createdAt: serverTimestamp() });
   };
 
-  const updateProduct = (id: string, updates: Partial<Product>) => {
-    setProducts((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, ...updates } : p))
-    );
+  const updateProduct = async (id: string, updates: Partial<Product>) => {
+    await updateDoc(doc(db, COLLECTION, id), { ...updates, updatedAt: serverTimestamp() });
   };
 
-  const deleteProduct = (id: string) => {
-    setProducts((prev) => prev.filter((p) => p.id !== id));
+  const deleteProduct = async (id: string) => {
+    await deleteDoc(doc(db, COLLECTION, id));
   };
 
   return (
     <ProductsContext.Provider
-      value={{ products, categories, addProduct, updateProduct, deleteProduct }}
+      value={{ products, categories, isLoading, addProduct, updateProduct, deleteProduct }}
     >
       {children}
     </ProductsContext.Provider>
