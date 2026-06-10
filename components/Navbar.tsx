@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useState, useEffect } from "react";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
-import { ShoppingCart, Menu, X, User, LogOut } from "lucide-react";
+import { ShoppingCart, Menu, X, User, LogOut, LayoutDashboard } from "lucide-react";
 
 const navLinks = [
   { label: "Home", href: "/" },
@@ -18,7 +18,7 @@ const navLinks = [
 
 export default function Navbar() {
   const { totalItems } = useCart();
-  const { user, isLoggedIn, logout } = useAuth();
+  const { user, isLoggedIn, isAdmin, logout } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
@@ -104,6 +104,16 @@ export default function Navbar() {
                 </button>
                 {userMenuOpen && (
                   <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50">
+                    {isAdmin && (
+                      <Link
+                        href="/admin"
+                        className="flex items-center gap-2 px-4 py-2.5 text-[#1a3a6b] hover:bg-blue-50 text-sm font-medium"
+                        onClick={() => setUserMenuOpen(false)}
+                      >
+                        <LayoutDashboard className="w-4 h-4" />
+                        Admin Dashboard
+                      </Link>
+                    )}
                     <Link
                       href="/profile"
                       className="flex items-center gap-2 px-4 py-2.5 text-gray-700 hover:bg-gray-50 text-sm font-medium"
@@ -177,6 +187,15 @@ export default function Navbar() {
             </Link>
             {isLoggedIn ? (
               <>
+                {isAdmin && (
+                  <Link
+                    href="/admin"
+                    className="block text-center bg-[#1a3a6b] text-white font-semibold py-2.5 rounded-full"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    Admin Dashboard
+                  </Link>
+                )}
                 <Link
                   href="/profile"
                   className="block text-center bg-gray-100 text-[#1a3a6b] font-semibold py-2.5 rounded-full"
