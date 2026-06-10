@@ -5,7 +5,8 @@ import Image from "next/image";
 import { useState, useEffect } from "react";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
-import { ShoppingCart, Menu, X, User, LogOut, LayoutDashboard } from "lucide-react";
+import { ShoppingCart, Menu, X, User, LogOut, LayoutDashboard, Search } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 const navLinks = [
   { label: "Home", href: "/" },
@@ -17,10 +18,21 @@ const navLinks = [
 ];
 
 export default function Navbar() {
+  const router = useRouter();
   const { totalItems } = useCart();
   const { user, isLoggedIn, isAdmin, logout } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      router.push(`/shop?search=${encodeURIComponent(searchQuery.trim())}`);
+      setSearchQuery("");
+      setMenuOpen(false);
+    }
+  };
 
   // Auto-close mobile menu on scroll
   useEffect(() => {
@@ -69,6 +81,20 @@ export default function Navbar() {
                 {link.label}
               </Link>
             ))}
+          </div>
+
+          {/* Search Bar */}
+          <div className="hidden md:flex flex-1 max-w-xs mx-4">
+            <form onSubmit={handleSearch} className="relative w-full">
+              <input
+                type="text"
+                placeholder="Search products..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 text-sm bg-gray-50 border border-gray-100 rounded-full focus:outline-none focus:bg-white focus:ring-2 focus:ring-[#f97316]/20 focus:border-[#f97316] transition-all"
+              />
+              <Search className="absolute left-3.5 top-2.5 w-4 h-4 text-gray-400" />
+            </form>
           </div>
 
           {/* Right Actions */}
@@ -167,6 +193,19 @@ export default function Navbar() {
       {/* Mobile Menu */}
       {menuOpen && (
         <div className="lg:hidden relative z-50 border-t border-gray-100 bg-white px-4 py-4 space-y-1">
+          {/* Mobile Search */}
+          <div className="pb-4">
+            <form onSubmit={handleSearch} className="relative w-full">
+              <input
+                type="text"
+                placeholder="Search products..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 text-sm bg-gray-50 border border-gray-100 rounded-full focus:outline-none focus:bg-white focus:ring-2 focus:ring-[#f97316]/20 focus:border-[#f97316]"
+              />
+              <Search className="absolute left-3.5 top-3 w-4 h-4 text-gray-400" />
+            </form>
+          </div>
           {navLinks.map((link) => (
             <Link
               key={link.label}

@@ -54,9 +54,22 @@ const CATEGORY_MAP: Record<string, string[]> = {
   "Blinds": ["Roller Blinds", "Zebra Blinds", "Wooden Blinds", "Printed Blinds"],
   "Pleated Mesh": ["Polyster Pleated Mesh", "SS 304 Pleated Mesh"],
   "Honeycomb": ["Honeycomb Blackout", "Honeycomb 2in1"],
-  "Partitions & Doors": ["PVC Doors", "Security Mesh", "Crystal Doors"],
+  "Partition & Security": ["PVC Partition", "Security Mesh", "Crystal Partition Door"],
+  "Accessories": ["Cleaning Kit", "Installation Tool", "Replacement Parts"],
 };
-const MAIN_CATEGORIES = Object.keys(CATEGORY_MAP);
+const MAIN_CATEGORIES = [
+  "Blinds",
+  "Roller Blinds",
+  "Zebra Blinds",
+  "Wooden Blinds",
+  "Printed Blinds",
+  "Pleated Mesh",
+  "SS 304 Pleated Mesh",
+  "Honeycomb",
+  "Partition & Security",
+  "Security Mesh",
+  "Accessories",
+];
 
 const STATUS_DISPLAY: Record<ContextOrderStatus, AdminOrderStatus> = {
   pending: "Pending",
@@ -286,6 +299,16 @@ export default function AdminDashboard() {
       features: [],
       badge: undefined,
       inStock: true,
+      festivalOffer: "",
+      discountPercent: undefined,
+      offerLabel: "",
+      offerValidTill: "",
+      subCategory: "",
+      images: [],
+      video: "",
+      likes: 0,
+      shares: 0,
+      comments: 0,
     });
   };
 
@@ -316,16 +339,39 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleImageUpload = async (file: File) => {
+  const handleImageUpload = async (file: File, isMain: boolean = true) => {
     if (!file) return;
     setImageUploading(true);
     try {
       const storageRef = ref(storage, `products/${Date.now()}_${file.name}`);
       await uploadBytes(storageRef, file);
       const url = await getDownloadURL(storageRef);
-      setFormData((prev: any) => ({ ...prev, image: url }));
+      if (isMain) {
+        setFormData((prev: any) => ({ ...prev, image: url }));
+      } else {
+        setFormData((prev: any) => ({
+          ...prev,
+          images: [...(prev.images || []), url].slice(0, 10)
+        }));
+      }
     } catch (err) {
-      alert("Image upload failed. Please try again.");
+      alert("Upload failed. Please try again.");
+      console.error(err);
+    } finally {
+      setImageUploading(false);
+    }
+  };
+
+  const handleVideoUpload = async (file: File) => {
+    if (!file) return;
+    setImageUploading(true);
+    try {
+      const storageRef = ref(storage, `videos/${Date.now()}_${file.name}`);
+      await uploadBytes(storageRef, file);
+      const url = await getDownloadURL(storageRef);
+      setFormData((prev: any) => ({ ...prev, video: url }));
+    } catch (err) {
+      alert("Video upload failed. Please try again.");
       console.error(err);
     } finally {
       setImageUploading(false);
@@ -675,24 +721,71 @@ export default function AdminDashboard() {
                   </select>
                 </div>
               )}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">Product Image</label>
-                <div className="space-y-2">
-                  <label className={`flex items-center justify-center gap-2 w-full px-3 py-2.5 text-sm border-2 border-dashed rounded-lg cursor-pointer transition-colors ${imageUploading ? "border-gray-200 bg-gray-50 opacity-60" : "border-[#1a3a6b]/30 hover:border-[#f97316] hover:bg-orange-50"}`}>
-                    <Upload className="w-4 h-4 text-gray-400" />
-                    <span className="text-gray-500">{imageUploading ? "Uploading…" : "Upload image from device"}</span>
-                    <input type="file" accept="image/*" className="hidden" disabled={imageUploading}
-                      onChange={e => { const f = e.target.files?.[0]; if (f) handleImageUpload(f); }} />
-                  </label>
-                  {formData.image && (
-                    <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2">
-                      <img src={formData.image} alt="preview" className="w-10 h-10 object-cover rounded-lg border border-gray-200" />
-                      <span className="text-xs text-gray-500 truncate flex-1">{formData.image}</span>
-                      <button type="button" onClick={() => setFormData((prev: any) => ({ ...prev, image: "" }))} className="text-gray-400 hover:text-red-500"><X className="w-4 h-4" /></button>
-                    </div>
-                  )}
-                  <input type="text" placeholder="Or paste image URL directly" value={formData.image || ""} onChange={e => setFormData({ ...formData, image: e.target.value })}
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-[#f97316]" />
+              <div className="space-y-4">
+                {/* Main Image */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Main Product Image *</label>
+                  <div className="space-y-2">
+                    <label className={`flex items-center justify-center gap-2 w-full px-3 py-2.5 text-sm border-2 border-dashed rounded-lg cursor-pointer transition-colors ${imageUploading ? "border-gray-200 bg-gray-50 opacity-60" : "border-[#1a3a6b]/30 hover:border-[#f97316] hover:bg-orange-50"}`}>
+                      <Upload className="w-4 h-4 text-gray-400" />
+                      <span className="text-gray-500">{imageUploading ? "Uploading…" : "Upload Main Image"}</span>
+                      <input type="file" accept="image/*" className="hidden" disabled={imageUploading}
+                        onChange={e => { const f = e.target.files?.[0]; if (f) handleImageUpload(f, true); }} />
+                    </label>
+                    {formData.image && (
+                      <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2">
+                        <img src={formData.image} alt="preview" className="w-10 h-10 object-cover rounded-lg border border-gray-200" />
+                        <span className="text-xs text-gray-500 truncate flex-1">{formData.image}</span>
+                        <button type="button" onClick={() => setFormData((prev: any) => ({ ...prev, image: "" }))} className="text-gray-400 hover:text-red-500"><X className="w-4 h-4" /></button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Multiple Images */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Additional Images (Up to 10)</label>
+                  <div className="space-y-3">
+                    <label className={`flex items-center justify-center gap-2 w-full px-3 py-2.5 text-sm border-2 border-dashed rounded-lg cursor-pointer transition-colors ${imageUploading || (formData.images?.length || 0) >= 10 ? "border-gray-200 bg-gray-50 opacity-60 cursor-not-allowed" : "border-[#1a3a6b]/30 hover:border-[#f97316] hover:bg-orange-50"}`}>
+                      <Plus className="w-4 h-4 text-gray-400" />
+                      <span className="text-gray-500">{(formData.images?.length || 0) >= 10 ? "Limit Reached" : "Add More Images"}</span>
+                      <input type="file" accept="image/*" className="hidden" disabled={imageUploading || (formData.images?.length || 0) >= 10}
+                        onChange={e => { const f = e.target.files?.[0]; if (f) handleImageUpload(f, false); }} />
+                    </label>
+                    {formData.images && formData.images.length > 0 && (
+                      <div className="grid grid-cols-5 gap-2">
+                        {formData.images.map((url: string, idx: number) => (
+                          <div key={idx} className="relative group aspect-square">
+                            <img src={url} alt={`gallery-${idx}`} className="w-full h-full object-cover rounded-lg border border-gray-200" />
+                            <button type="button" onClick={() => setFormData((prev: any) => ({ ...prev, images: prev.images.filter((_: any, i: number) => i !== idx) }))} 
+                              className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 shadow-md opacity-0 group-hover:opacity-100 transition-opacity">
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Video Upload */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Product Video</label>
+                  <div className="space-y-2">
+                    <label className={`flex items-center justify-center gap-2 w-full px-3 py-2.5 text-sm border-2 border-dashed rounded-lg cursor-pointer transition-colors ${imageUploading ? "border-gray-200 bg-gray-50 opacity-60" : "border-[#1a3a6b]/30 hover:border-blue-500 hover:bg-blue-50"}`}>
+                      <Package className="w-4 h-4 text-gray-400" />
+                      <span className="text-gray-500">{imageUploading ? "Uploading…" : "Upload Video (MP4/WebM)"}</span>
+                      <input type="file" accept="video/*" className="hidden" disabled={imageUploading}
+                        onChange={e => { const f = e.target.files?.[0]; if (f) handleVideoUpload(f); }} />
+                    </label>
+                    {formData.video && (
+                      <div className="flex items-center gap-2 bg-blue-50 rounded-lg px-3 py-2">
+                        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600 font-bold text-[10px]">VIDEO</div>
+                        <span className="text-xs text-blue-700 truncate flex-1">{formData.video}</span>
+                        <button type="button" onClick={() => setFormData((prev: any) => ({ ...prev, video: "" }))} className="text-blue-400 hover:text-red-500"><X className="w-4 h-4" /></button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
               <div>
@@ -723,6 +816,47 @@ export default function AdminDashboard() {
                       className="w-4 h-4 border border-gray-300 rounded focus:outline-none accent-[#f97316]" />
                     <span className="text-sm font-semibold text-gray-700">In Stock</span>
                   </label>
+                </div>
+              </div>
+
+              {/* ── Festival & Offers Section ── */}
+              <div className="pt-4 border-t border-gray-100">
+                <h4 className="text-sm font-bold text-[#1a3a6b] mb-3 flex items-center gap-2">
+                  <Star className="w-4 h-4 text-orange-500 fill-orange-500" />
+                  Festival Offers & Discounts
+                </h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">Festival Offer Badge</label>
+                    <select value={formData.festivalOffer || ""} onChange={e => setFormData({ ...formData, festivalOffer: e.target.value })}
+                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-[#f97316]">
+                      <option value="">No Festival Offer</option>
+                      <option value="Diwali Special">🪔 Diwali Special</option>
+                      <option value="Holi Dhamaka">🎨 Holi Dhamaka</option>
+                      <option value="Eid Mubarak">🌙 Eid Mubarak</option>
+                      <option value="Christmas Sale">🎄 Christmas Sale</option>
+                      <option value="New Year Deal">🎉 New Year Deal</option>
+                      <option value="Independence Day">🇮🇳 Independence Day</option>
+                      <option value="Limited Time">⏳ Limited Time Offer</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">Discount (%)</label>
+                    <input type="number" value={formData.discountPercent || ""} onChange={e => setFormData({ ...formData, discountPercent: e.target.value ? parseInt(e.target.value) : undefined })}
+                      placeholder="e.g. 20"
+                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-[#f97316]" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">Offer Label</label>
+                    <input type="text" value={formData.offerLabel || ""} onChange={e => setFormData({ ...formData, offerLabel: e.target.value })}
+                      placeholder="e.g. Buy 1 Get 1 Free"
+                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-[#f97316]" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">Offer Valid Till</label>
+                    <input type="date" value={formData.offerValidTill || ""} onChange={e => setFormData({ ...formData, offerValidTill: e.target.value })}
+                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-[#f97316]" />
+                  </div>
                 </div>
               </div>
             </div>

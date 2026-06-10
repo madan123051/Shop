@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
-import { Star, ShoppingCart, Heart, Check } from "lucide-react";
+import { Star, ShoppingCart, Heart, Check, Share2, MessageCircle, Eye } from "lucide-react";
 import { Product } from "@/data/products";
 import { useCart } from "@/context/CartContext";
 
@@ -18,6 +18,7 @@ export default function ProductCard({ product }: { product: Product }) {
   const { addToCart } = useCart();
   const [isAdded, setIsAdded] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [likes, setLikes] = useState(product.likes || 0);
 
   const handleAddToCart = () => {
     addToCart(product);
@@ -25,103 +26,139 @@ export default function ProductCard({ product }: { product: Product }) {
     setTimeout(() => setIsAdded(false), 2000);
   };
 
-  const handleFavorite = () => {
+  const handleFavorite = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isFavorite) setLikes(prev => prev + 1);
+    else setLikes(prev => prev - 1);
     setIsFavorite(!isFavorite);
   };
 
   return (
-    <div className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col">
-      {/* Image */}
-      <Link href={`/product/${product.id}`} className="relative block aspect-square overflow-hidden bg-gray-50">
+    <div className="group bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-2xl transition-all duration-500 border border-gray-100 flex flex-col relative">
+      {/* Quick Actions Floating Bar */}
+      <div className="absolute top-4 right-4 z-10 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-4 group-hover:translate-x-0">
+        <button
+          onClick={handleFavorite}
+          className={`w-10 h-10 rounded-full shadow-lg flex items-center justify-center transition-all ${
+            isFavorite ? "bg-red-500 text-white" : "bg-white text-gray-400 hover:text-red-500"
+          }`}
+        >
+          <Heart className={`w-5 h-5 ${isFavorite ? "fill-current" : ""}`} />
+        </button>
+        <button className="w-10 h-10 bg-white text-gray-400 hover:text-[#f97316] rounded-full shadow-lg flex items-center justify-center transition-all">
+          <Share2 className="w-5 h-5" />
+        </button>
+        <Link href={`/product/${product.id}`} className="w-10 h-10 bg-white text-gray-400 hover:text-blue-500 rounded-full shadow-lg flex items-center justify-center transition-all">
+          <Eye className="w-5 h-5" />
+        </Link>
+      </div>
+
+      {/* Image Section */}
+      <Link href={`/product/${product.id}`} className="relative block aspect-[4/5] overflow-hidden bg-gray-50">
         <Image
           src={product.image}
           alt={product.name}
           fill
-          className="object-cover group-hover:scale-105 transition-transform duration-500"
+          className="object-cover group-hover:scale-110 transition-transform duration-700"
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
         />
-        {product.badge && (
-          <span className={`absolute top-3 left-3 ${badgeColors[product.badge]} text-white text-xs font-semibold px-2.5 py-1 rounded-full`}>
-            {product.badge}
-          </span>
+        
+        {/* Badges Overlay */}
+        <div className="absolute top-4 left-4 flex flex-col gap-2">
+          {product.badge && (
+            <span className={`${badgeColors[product.badge]} text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full shadow-sm`}>
+              {product.badge}
+            </span>
+          )}
+          {product.festivalOffer && (
+            <span className="bg-gradient-to-r from-orange-500 to-red-500 text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full shadow-lg animate-pulse">
+              {product.festivalOffer}
+            </span>
+          )}
+        </div>
+
+        {/* Media Indicator */}
+        {(product.images?.length || 0) > 0 && (
+          <div className="absolute bottom-4 right-4 bg-black/50 backdrop-blur-md text-white text-[10px] font-bold px-2 py-1 rounded-md">
+            {product.images!.length + 1} PHOTOS
+          </div>
         )}
-        <button
-          onClick={handleFavorite}
-          className="absolute top-3 right-3 w-8 h-8 bg-white rounded-full shadow flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50"
-        >
-          <Heart
-            className={`w-4 h-4 transition-colors ${
-              isFavorite ? "text-red-500 fill-red-500" : "text-gray-400 hover:text-red-500"
-            }`}
-          />
-        </button>
       </Link>
 
-      {/* Content */}
-      <div className="p-4 flex flex-col flex-1">
-        <p className="text-xs text-[#f97316] font-medium uppercase tracking-wide mb-1">
-          {product.category}
-        </p>
+      {/* Content Section */}
+      <div className="p-5 flex flex-col flex-1">
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-[10px] text-[#f97316] font-bold uppercase tracking-widest">
+            {product.category}
+          </p>
+          <div className="flex items-center gap-1">
+            <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
+            <span className="text-xs font-bold text-gray-700">{product.rating}</span>
+          </div>
+        </div>
+
         <Link href={`/product/${product.id}`}>
-          <h3 className="font-semibold text-gray-800 hover:text-[#f97316] transition-colors line-clamp-2 mb-2">
+          <h3 className="font-bold text-gray-900 hover:text-[#f97316] transition-colors line-clamp-1 text-lg mb-1">
             {product.name}
           </h3>
         </Link>
 
-        {/* Rating */}
-        <div className="flex items-center gap-1.5 mb-3">
-          <div className="flex">
-            {[1, 2, 3, 4, 5].map((star) => (
-              <Star
-                key={star}
-                className={`w-3.5 h-3.5 ${
-                  star <= Math.round(product.rating)
-                    ? "text-amber-400 fill-amber-400"
-                    : "text-gray-200 fill-gray-200"
-                }`}
-              />
-            ))}
+        {/* Social Stats */}
+        <div className="flex items-center gap-4 mb-4 text-gray-400">
+          <div className="flex items-center gap-1">
+            <Heart className={`w-3.5 h-3.5 ${isFavorite ? "text-red-500 fill-red-500" : ""}`} />
+            <span className="text-[11px] font-medium">{likes}</span>
           </div>
-          <span className="text-xs text-gray-500">({product.reviews})</span>
+          <div className="flex items-center gap-1">
+            <MessageCircle className="w-3.5 h-3.5" />
+            <span className="text-[11px] font-medium">{product.comments || 0}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <Share2 className="w-3.5 h-3.5" />
+            <span className="text-[11px] font-medium">{product.shares || 0}</span>
+          </div>
         </div>
 
-        {/* Stock Status */}
-        {!product.inStock && (
-          <p className="text-xs text-red-600 font-semibold mb-2">Out of Stock</p>
+        {/* Offer Tag */}
+        {product.offerLabel && (
+          <div className="bg-orange-50 border border-orange-100 rounded-xl px-3 py-2 mb-4">
+            <p className="text-[11px] text-orange-700 font-bold flex items-center gap-1.5">
+              <span className="text-sm">🎁</span> {product.offerLabel}
+            </p>
+          </div>
         )}
 
-        {/* Price + Cart */}
-        <div className="mt-auto flex items-center justify-between gap-2">
-          <div>
-            <span className="text-lg font-bold text-gray-900">
-              ₹{product.price.toLocaleString('en-IN')}
-            </span>
+        {/* Price & Cart */}
+        <div className="mt-auto pt-4 border-t border-gray-50 flex items-center justify-between">
+          <div className="flex flex-col">
+            <div className="flex items-center gap-2">
+              <span className="text-xl font-black text-gray-900">
+                ₹{product.price.toLocaleString("en-IN")}
+              </span>
+              {product.discountPercent && (
+                <span className="text-[10px] font-bold text-white bg-green-500 px-2 py-0.5 rounded-full">
+                  -{product.discountPercent}%
+                </span>
+              )}
+            </div>
             {product.originalPrice && (
-              <span className="text-sm text-gray-400 line-through ml-1.5">
-                ₹{product.originalPrice.toLocaleString('en-IN')}
+              <span className="text-xs text-gray-400 line-through font-medium">
+                ₹{product.originalPrice.toLocaleString("en-IN")}
               </span>
             )}
           </div>
+          
           <button
             onClick={handleAddToCart}
             disabled={!product.inStock}
-            className={`flex items-center gap-1.5 font-medium px-3 py-2 rounded-xl transition-all duration-300 text-sm ${
+            className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300 ${
               isAdded
-                ? "bg-emerald-100 text-emerald-700"
-                : "bg-[#f97316] hover:bg-[#ea580c] disabled:bg-gray-200 text-white"
+                ? "bg-emerald-500 text-white shadow-lg shadow-emerald-200"
+                : "bg-[#1a3a6b] hover:bg-[#f97316] text-white shadow-lg shadow-blue-100 hover:shadow-orange-100 disabled:bg-gray-200 disabled:shadow-none"
             }`}
           >
-            {isAdded ? (
-              <>
-                <Check className="w-4 h-4" />
-                Added
-              </>
-            ) : (
-              <>
-                <ShoppingCart className="w-4 h-4" />
-                Add
-              </>
-            )}
+            {isAdded ? <Check className="w-6 h-6" /> : <ShoppingCart className="w-6 h-6" />}
           </button>
         </div>
       </div>
