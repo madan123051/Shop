@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useOrder, Order as ContextOrder } from "@/context/OrderContext";
@@ -10,6 +10,7 @@ import {
   DollarSign, TrendingUp, Clock, CheckCircle, Truck, XCircle,
   AlertCircle, Search, LogOut, Menu, BarChart2, ArrowUpRight,
   Star, Bell, Edit2, Trash2, Plus, Eye, X,
+  FileText, MessageSquare, Reply, Send, RefreshCw, ExternalLink,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -24,7 +25,24 @@ interface Customer {
   location: string;
 }
 
-type Tab = "overview" | "orders" | "products" | "customers" | "settings";
+interface QuoteRequest {
+  id: string;
+  name: string;
+  phone: string;
+  email: string;
+  category: string;
+  product: string;
+  width: string;
+  height: string;
+  quantity: string;
+  address: string;
+  notes: string;
+  status: "pending" | "replied" | "closed";
+  reply: string;
+  createdAt: string;
+}
+
+type Tab = "overview" | "orders" | "products" | "customers" | "quotes" | "chatbot" | "settings";
 type ContextOrderStatus = "pending" | "confirmed" | "shipped" | "delivered" | "cancelled";
 type AdminOrderStatus = "Pending" | "Processing" | "Shipped" | "Delivered" | "Cancelled";
 
@@ -114,6 +132,56 @@ export default function AdminDashboard() {
   // Product Modal State
   const [productModal, setProductModal] = useState<{ open: boolean; mode: "add" | "edit"; product?: any }>({ open: false, mode: "add" });
   const [formData, setFormData] = useState<any>({});
+
+  // Quote Requests State
+  const [quotes, setQuotes] = useState<QuoteRequest[]>([]);
+  const [quotesLoading, setQuotesLoading] = useState(false);
+  const [quoteSearch, setQuoteSearch] = useState("");
+  const [replyModal, setReplyModal] = useState<{ open: boolean; quote: QuoteRequest | null }>({ open: false, quote: null });
+  const [replyText, setReplyText] = useState("");
+  const [replying, setReplying] = useState(false);
+
+  const fetchQuotes = useCallback(async () => {
+    setQuotesLoading(true);
+    try {
+      const res = await fetch("/api/quotes");
+      const data = await res.json();
+      setQuotes(data.quotes || []);
+    } catch {
+      setQuotes([]);
+    } finally {
+      setQuotesLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === "quotes") fetchQuotes();
+  }, [activeTab, fetchQuotes]);
+
+  const deleteQuote = async (id: string) => {
+    if (!confirm("Delete this quote request?")) return;
+    await fetch(`/api/quotes/${id}`, { method: "DELETE" });
+    setQuotes(prev => prev.filter(q => q.id !== id));
+  };
+
+  const sendReply = async () => {
+    if (!replyModal.quote || !replyText.trim()) return;
+    setReplying(true);
+    try {
+      await fetch(`/api/quotes/${replyModal.quote.id}/reply`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reply: replyText }),
+      });
+      setQuotes(prev => prev.map(q =>
+        q.id === replyModal.quote!.id ? { ...q, reply: replyText, status: "replied" } : q
+      ));
+      setReplyModal({ open: false, quote: null });
+      setReplyText("");
+    } finally {
+      setReplying(false);
+    }
+  };
 
   // Compute derived data from real orders
   const totalRevenue = orders.filter(o => o.status !== "cancelled").reduce((s, o) => s + o.total, 0);
@@ -230,6 +298,8 @@ export default function AdminDashboard() {
     { id: "orders", label: "Orders", icon: <ShoppingCart className="w-5 h-5" />, badge: pendingCount },
     { id: "products", label: "Products", icon: <Package className="w-5 h-5" />, badge: products.length },
     { id: "customers", label: "Customers", icon: <Users className="w-5 h-5" /> },
+    { id: "quotes", label: "Quote Requests", icon: <FileText className="w-5 h-5" />, badge: quotes.filter(q => q.status === "pending").length || undefined },
+    { id: "chatbot", label: "Chatbot", icon: <MessageSquare className="w-5 h-5" /> },
     { id: "settings", label: "Settings", icon: <Settings className="w-5 h-5" /> },
   ];
 
@@ -637,6 +707,157 @@ export default function AdminDashboard() {
   );
 
   // ── Settings ──────────────────────────────────────────────────────────────
+  const filteredQuotes = quotes.filter(q =>
+    q.name.toLowerCase().includes(quoteSearch.toLowerCase()) ||
+    q.phone.includes(quoteSearch) ||
+    q.product.toLowerCase().includes(quoteSearch.toLowerCase())
+  );
+
+  const QuotesEl = (
+    <div className="space-y-4">
+      {/* Reply Modal */}
+      {replyModal.open && replyModal.quote && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-gray-900 flex items-center gap-2"><Reply className="w-5 h-5 text-[#1a3a6b]" />Reply to {replyModal.quote.name}</h3>
+              <button onClick={() => { setReplyModal({ open: false, quote: null }); setReplyText(""); }} className="p-1.5 hover:bg-gray-100 rounded-lg"><X className="w-4 h-4" /></button>
+            </div>
+            <div className="bg-gray-50 rounded-xl p-4 mb-4 text-sm space-y-1.5">
+              <p><span className="font-semibold text-gray-600">Product:</span> {replyModal.quote.product || replyModal.quote.category || "—"}</p>
+              <p><span className="font-semibold text-gray-600">Size:</span> {replyModal.quote.width && replyModal.quote.height ? `${replyModal.quote.width} × ${replyModal.quote.height}` : "—"}</p>
+              <p><span className="font-semibold text-gray-600">Qty:</span> {replyModal.quote.quantity || "1"}</p>
+              {replyModal.quote.notes && <p><span className="font-semibold text-gray-600">Notes:</span> {replyModal.quote.notes}</p>}
+            </div>
+            <textarea
+              value={replyText}
+              onChange={e => setReplyText(e.target.value)}
+              placeholder="Type your reply / quote price here…"
+              rows={4}
+              className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-[#f97316] focus:ring-2 focus:ring-[#f97316]/20 resize-none"
+            />
+            <div className="flex justify-end gap-3 mt-4">
+              <button onClick={() => { setReplyModal({ open: false, quote: null }); setReplyText(""); }} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-xl transition-colors">Cancel</button>
+              <button onClick={sendReply} disabled={replying || !replyText.trim()} className="px-5 py-2 bg-[#1a3a6b] hover:bg-[#15306b] disabled:opacity-50 text-white text-sm font-bold rounded-xl flex items-center gap-2 transition-colors">
+                <Send className="w-4 h-4" />{replying ? "Sending…" : "Send Reply"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+        <div className="relative flex-1 max-w-xs">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input value={quoteSearch} onChange={e => setQuoteSearch(e.target.value)} placeholder="Search by name, phone, product…" className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-[#f97316]" />
+        </div>
+        <button onClick={fetchQuotes} disabled={quotesLoading} className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-[#1a3a6b] bg-[#1a3a6b]/10 hover:bg-[#1a3a6b]/20 rounded-xl transition-colors">
+          <RefreshCw className={`w-4 h-4 ${quotesLoading ? "animate-spin" : ""}`} />Refresh
+        </button>
+      </div>
+
+      {quotesLoading ? (
+        <div className="flex items-center justify-center h-40"><div className="w-8 h-8 border-4 border-[#1a3a6b] border-t-transparent rounded-full animate-spin" /></div>
+      ) : filteredQuotes.length === 0 ? (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-12 text-center">
+          <FileText className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+          <p className="text-gray-500 font-medium">No quote requests yet</p>
+          <p className="text-gray-400 text-sm mt-1">Requests from the website will appear here</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {filteredQuotes.map(q => (
+            <div key={q.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+              <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap mb-2">
+                    <h3 className="font-bold text-gray-900">{q.name}</h3>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${
+                      q.status === "replied" ? "bg-green-100 text-green-700" :
+                      q.status === "closed" ? "bg-gray-100 text-gray-600" :
+                      "bg-orange-100 text-orange-700"
+                    }`}>{q.status === "pending" ? "Pending" : q.status === "replied" ? "Replied" : "Closed"}</span>
+                    <span className="text-xs text-gray-400">{new Date(q.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-1 text-sm text-gray-600">
+                    <span><span className="font-medium">📞</span> {q.phone}</span>
+                    {q.email && <span><span className="font-medium">✉️</span> {q.email}</span>}
+                    {q.product && <span><span className="font-medium">🪟</span> {q.product}</span>}
+                    {q.category && <span><span className="font-medium">📂</span> {q.category}</span>}
+                    {(q.width || q.height) && <span><span className="font-medium">📐</span> {q.width} × {q.height}</span>}
+                    {q.quantity && <span><span className="font-medium">🔢</span> Qty: {q.quantity}</span>}
+                    {q.address && <span className="col-span-2"><span className="font-medium">📍</span> {q.address}</span>}
+                  </div>
+                  {q.notes && <p className="mt-2 text-sm text-gray-500 italic">"{q.notes}"</p>}
+                  {q.reply && (
+                    <div className="mt-3 bg-blue-50 border border-blue-100 rounded-xl p-3 text-sm text-blue-800">
+                      <span className="font-semibold">Your reply:</span> {q.reply}
+                    </div>
+                  )}
+                </div>
+                <div className="flex sm:flex-col gap-2">
+                  <button onClick={() => { setReplyModal({ open: true, quote: q }); setReplyText(q.reply || ""); }}
+                    className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold bg-[#1a3a6b] hover:bg-[#15306b] text-white rounded-xl transition-colors">
+                    <Reply className="w-3.5 h-3.5" />Reply
+                  </button>
+                  <button onClick={() => deleteQuote(q.id)}
+                    className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold bg-red-50 hover:bg-red-100 text-red-600 rounded-xl transition-colors">
+                    <Trash2 className="w-3.5 h-3.5" />Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
+  const ChatbotEl = (
+    <div className="max-w-2xl space-y-6">
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+        <h3 className="font-bold text-gray-800 mb-1 flex items-center gap-2">
+          <MessageSquare className="w-5 h-5 text-[#1a3a6b]" />Chatbot Status
+        </h3>
+        <p className="text-sm text-gray-500 mb-5">Your AI chatbot is live on the website, powered by Gemini AI.</p>
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse" />
+          <span className="text-sm font-semibold text-green-700">Active — Responding to visitors</span>
+        </div>
+        <div className="space-y-3 text-sm">
+          <div className="flex items-center justify-between py-2.5 border-b border-gray-100">
+            <span className="text-gray-600">Model</span><span className="font-semibold text-gray-800">Gemini 1.5 Flash</span>
+          </div>
+          <div className="flex items-center justify-between py-2.5 border-b border-gray-100">
+            <span className="text-gray-600">Endpoint</span><code className="text-xs bg-gray-50 px-2 py-1 rounded-lg font-mono text-[#1a3a6b]">/api/chat</code>
+          </div>
+          <div className="flex items-center justify-between py-2.5 border-b border-gray-100">
+            <span className="text-gray-600">Quote Integration</span><code className="text-xs bg-gray-50 px-2 py-1 rounded-lg font-mono text-[#1a3a6b]">/quote → /api/quotes</code>
+          </div>
+          <div className="flex items-center justify-between py-2.5">
+            <span className="text-gray-600">Visible on</span><span className="font-semibold text-gray-800">All public pages</span>
+          </div>
+        </div>
+      </div>
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+        <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+          <ExternalLink className="w-4 h-4 text-[#1a3a6b]" />Quick Links
+        </h3>
+        <div className="space-y-3">
+          <a href="/quote" target="_blank" className="flex items-center justify-between p-3 bg-[#1a3a6b]/5 hover:bg-[#1a3a6b]/10 rounded-xl transition-colors group">
+            <span className="text-sm font-medium text-[#1a3a6b]">Quote Request Page</span>
+            <ExternalLink className="w-4 h-4 text-[#1a3a6b] group-hover:scale-110 transition-transform" />
+          </a>
+          <div onClick={() => setActiveTab("quotes")} className="flex items-center justify-between p-3 bg-orange-50 hover:bg-orange-100 rounded-xl transition-colors group cursor-pointer">
+            <span className="text-sm font-medium text-orange-700">View Quote Requests ({quotes.length})</span>
+            <FileText className="w-4 h-4 text-orange-600 group-hover:scale-110 transition-transform" />
+          </div>
+        </div>
+        <p className="mt-4 text-xs text-gray-400">Chatbot configuration and prompt updates coming soon.</p>
+      </div>
+    </div>
+  );
+
   const SettingsEl = (
     <div className="max-w-2xl space-y-6">
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
@@ -657,10 +878,12 @@ export default function AdminDashboard() {
   // ── Render ────────────────────────────────────────────────────────────────
   const TITLES: Record<Tab, string> = {
     overview: "Dashboard Overview", orders: "Orders Management",
-    products: "Products Catalogue", customers: "Customer Directory", settings: "Store Settings",
+    products: "Products Catalogue", customers: "Customer Directory",
+    quotes: "Quote Requests", chatbot: "Chatbot Manager", settings: "Store Settings",
   };
   const CONTENT: Record<Tab, React.ReactNode> = {
-    overview: Overview, orders: Orders, products: Products, customers: Customers, settings: SettingsEl,
+    overview: Overview, orders: Orders, products: Products, customers: Customers,
+    quotes: QuotesEl, chatbot: ChatbotEl, settings: SettingsEl,
   };
 
   return (
