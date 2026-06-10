@@ -85,7 +85,7 @@ export default function ProfilePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [activeTab, setActiveTab] = useState<Tab>("info");
-  const [isInfoCollapsed, setIsInfoCollapsed] = useState(false);
+  const [isInfoCollapsed, setIsInfoCollapsed] = useState(true);
   const [isEditingInfo, setIsEditingInfo] = useState(false);
   const [isAddingAddress, setIsAddingAddress] = useState(false);
   const [editingAddressId, setEditingAddressId] = useState<string | null>(null);

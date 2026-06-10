@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { ShoppingCart, Menu, X, User, LogOut } from "lucide-react";
@@ -21,6 +21,14 @@ export default function Navbar() {
   const { user, isLoggedIn, logout } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+
+  // Auto-close mobile menu on scroll
+  useEffect(() => {
+    if (!menuOpen) return;
+    const close = () => setMenuOpen(false);
+    window.addEventListener("scroll", close, { passive: true });
+    return () => window.removeEventListener("scroll", close);
+  }, [menuOpen]);
 
   return (
     <nav className="sticky top-0 z-50 bg-white shadow-sm border-b border-gray-100">
@@ -138,9 +146,17 @@ export default function Navbar() {
         </div>
       </div>
 
+      {/* Backdrop — closes menu when tapping outside */}
+      {menuOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-transparent"
+          onClick={() => setMenuOpen(false)}
+        />
+      )}
+
       {/* Mobile Menu */}
       {menuOpen && (
-        <div className="lg:hidden border-t border-gray-100 bg-white px-4 py-4 space-y-1">
+        <div className="lg:hidden relative z-50 border-t border-gray-100 bg-white px-4 py-4 space-y-1">
           {navLinks.map((link) => (
             <Link
               key={link.label}
