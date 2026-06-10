@@ -30,9 +30,9 @@ function ShopContent() {
 
   const CATEGORY_MAP: Record<string, string[]> = {
     "Blinds": ["Roller Blinds", "Zebra Blinds", "Wooden Blinds", "Printed Blinds"],
-    "Pleated Mesh": ["Polyster Pleated Mesh", "SS 304 Pleated Mesh"],
-    "Honeycomb": ["Honeycomb Blackout", "Honeycomb 2in1"],
-    "Partitions & Doors": ["PVC Doors", "Security Mesh", "Crystal Doors"],
+    "Pleated Mesh": ["Pleated Mesh", "SS 304 Pleated Mesh"],
+    "Honeycomb": ["Honeycomb"],
+    "Partitions & Doors": ["Partition & Security", "Security Mesh"],
   };
 
   const subCategories = selectedCategory !== "All" ? ["All", ...(CATEGORY_MAP[selectedCategory] || [])] : [];
@@ -42,7 +42,7 @@ function ShopContent() {
     if (selectedCategory !== "All") {
       result = result.filter((p) => p.category === selectedCategory);
       if (selectedSubCategory !== "All") {
-        result = result.filter((p) => p.name === selectedSubCategory || p.subCategory === selectedSubCategory);
+        result = result.filter((p) => p.subCategory === selectedSubCategory);
       }
     }
     if (search.trim()) {
@@ -108,19 +108,29 @@ function ShopContent() {
       {allCategories.length > 1 && (
         <div className="space-y-4 mb-8">
           <div className="flex gap-2 flex-wrap">
-            {allCategories.map((cat) => (
+            {/* If a specific category is selected (not "All"), only show that category button to allow clearing it, OR if "All" is selected, show all main categories */}
+            {selectedCategory === "All" ? (
+              allCategories.map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setSelectedCategory(cat)}
+                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                    selectedCategory === cat
+                      ? "bg-[#1a3a6b] text-white shadow-md"
+                      : "bg-white text-gray-600 border border-gray-200 hover:border-[#1a3a6b] hover:text-[#1a3a6b]"
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))
+            ) : (
               <button
-                key={cat}
-                onClick={() => setSelectedCategory(cat)}
-                className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-                  selectedCategory === cat
-                    ? "bg-[#1a3a6b] text-white shadow-md"
-                    : "bg-white text-gray-600 border border-gray-200 hover:border-[#1a3a6b] hover:text-[#1a3a6b]"
-                }`}
+                onClick={() => setSelectedCategory("All")}
+                className="px-4 py-2 rounded-xl text-sm font-medium bg-[#1a3a6b] text-white shadow-md flex items-center gap-2"
               >
-                {cat}
+                {selectedCategory} <X className="w-3 h-3" />
               </button>
-            ))}
+            )}
           </div>
 
           {subCategories.length > 1 && (

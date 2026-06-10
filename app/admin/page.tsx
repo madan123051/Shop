@@ -52,24 +52,11 @@ type AdminOrderStatus = "Pending" | "Processing" | "Shipped" | "Delivered" | "Ca
 
 const CATEGORY_MAP: Record<string, string[]> = {
   "Blinds": ["Roller Blinds", "Zebra Blinds", "Wooden Blinds", "Printed Blinds"],
-  "Pleated Mesh": ["Polyster Pleated Mesh", "SS 304 Pleated Mesh"],
-  "Honeycomb": ["Honeycomb Blackout", "Honeycomb 2in1"],
-  "Partition & Security": ["PVC Partition", "Security Mesh", "Crystal Partition Door"],
-  "Accessories": ["Cleaning Kit", "Installation Tool", "Replacement Parts"],
+  "Pleated Mesh": ["Pleated Mesh", "SS 304 Pleated Mesh"],
+  "Honeycomb": ["Honeycomb"],
+  "Partitions & Doors": ["Partition & Security", "Security Mesh"],
 };
-const MAIN_CATEGORIES = [
-  "Blinds",
-  "Roller Blinds",
-  "Zebra Blinds",
-  "Wooden Blinds",
-  "Printed Blinds",
-  "Pleated Mesh",
-  "SS 304 Pleated Mesh",
-  "Honeycomb",
-  "Partition & Security",
-  "Security Mesh",
-  "Accessories",
-];
+const MAIN_CATEGORIES = Object.keys(CATEGORY_MAP);
 
 const STATUS_DISPLAY: Record<ContextOrderStatus, AdminOrderStatus> = {
   pending: "Pending",
@@ -683,8 +670,18 @@ export default function AdminDashboard() {
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1">Main Category *</label>
-                  <select value={formData.category || ""} onChange={e => setFormData({ ...formData, category: e.target.value, subCategory: "" })}
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-[#f97316]">
+                  <select 
+                    value={formData.category || ""} 
+                    onChange={e => {
+                      const newCat = e.target.value;
+                      setFormData({ 
+                        ...formData, 
+                        category: newCat,
+                        subCategory: CATEGORY_MAP[newCat]?.[0] || "" // Auto-select first subcategory
+                      });
+                    }}
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-[#f97316]"
+                  >
                     <option value="">Select category…</option>
                     {MAIN_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
@@ -713,11 +710,16 @@ export default function AdminDashboard() {
               {/* Sub-Category */}
               {formData.category && (
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">Product Type</label>
-                  <select value={formData.subCategory || ""} onChange={e => setFormData({ ...formData, subCategory: e.target.value })}
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-[#f97316]">
-                    <option value="">Select product type…</option>
-                    {(CATEGORY_MAP[formData.category] || []).map(s => <option key={s} value={s}>{s}</option>)}
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Sub Category *</label>
+                  <select 
+                    value={formData.subCategory || ""} 
+                    onChange={e => setFormData({ ...formData, subCategory: e.target.value })}
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-[#f97316]"
+                  >
+                    <option value="">Select sub category…</option>
+                    {(CATEGORY_MAP[formData.category] || []).map(s => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
                   </select>
                 </div>
               )}
