@@ -10,7 +10,7 @@ import ChatBot from "@/components/ChatBot";
 
 export const metadata: Metadata = {
   title: "NewTech Home Solutions — Complete Home Protection & Interior Solutions",
-  description: "Premium Blinds, Pleated Mesh, Honeycomb Partitions, PVC Partition, Security Mesh and more. Serving Delhi NCR.",
+  description: "Premium Blinds, Pleated Mesh, Honeycomb Blinds, Partitions & Doors and more. Serving Delhi NCR.",
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "any" },

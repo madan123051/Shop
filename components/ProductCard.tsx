@@ -94,11 +94,11 @@ export default function ProductCard({ product }: { product: Product }) {
         <div className="mt-auto flex items-center justify-between gap-2">
           <div>
             <span className="text-lg font-bold text-gray-900">
-              ${product.price.toFixed(2)}
+              ₹{product.price.toLocaleString('en-IN')}
             </span>
             {product.originalPrice && (
               <span className="text-sm text-gray-400 line-through ml-1.5">
-                ${product.originalPrice.toFixed(2)}
+                ₹{product.originalPrice.toLocaleString('en-IN')}
               </span>
             )}
           </div>

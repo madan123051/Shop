@@ -54,7 +54,7 @@ const CATEGORY_MAP: Record<string, string[]> = {
   "Blinds": ["Roller Blinds", "Zebra Blinds", "Wooden Blinds", "Printed Blinds"],
   "Pleated Mesh": ["Polyster Pleated Mesh", "SS 304 Pleated Mesh"],
   "Honeycomb": ["Honeycomb Blackout", "Honeycomb 2in1"],
-  "Partition & Security": ["PVC Doors", "Security Mesh", "Crystal Doors"],
+  "Partitions & Doors": ["PVC Doors", "Security Mesh", "Crystal Doors"],
 };
 const MAIN_CATEGORIES = Object.keys(CATEGORY_MAP);
 
@@ -173,6 +173,16 @@ export default function AdminDashboard() {
     if (!confirm("Delete this quote request?")) return;
     await fetch(`/api/quotes/${id}`, { method: "DELETE" });
     setQuotes(prev => prev.filter(q => q.id !== id));
+  };
+
+  const handleDeleteProduct = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this product? This action cannot be undone.")) return;
+    try {
+      await deleteProduct(id);
+    } catch (err) {
+      console.error("Delete product error:", err);
+      alert("Failed to delete product. Please check your connection and try again.");
+    }
   };
 
   const sendReply = async () => {
@@ -582,7 +592,7 @@ export default function AdminDashboard() {
               {p.badge && <span className="absolute top-2 left-2 bg-[#f97316] text-white text-xs font-bold px-2 py-0.5 rounded-full">{p.badge}</span>}
               <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button onClick={() => openEditModal(p)} className="w-7 h-7 bg-white rounded-lg shadow flex items-center justify-center hover:bg-[#1a3a6b] hover:text-white transition-colors"><Edit2 className="w-3.5 h-3.5" /></button>
-                <button onClick={() => deleteProduct(p.id)} className="w-7 h-7 bg-white rounded-lg shadow flex items-center justify-center hover:bg-red-500 hover:text-white transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
+                <button onClick={() => handleDeleteProduct(p.id)} className="w-7 h-7 bg-white rounded-lg shadow flex items-center justify-center hover:bg-red-500 hover:text-white transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
               </div>
             </div>
             <div className="p-4">

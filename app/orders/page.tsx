@@ -332,7 +332,7 @@ export default function OrdersPage() {
                       <div className="bg-orange-50 rounded-xl p-3 text-center">
                         <p className="text-xs text-gray-400 mb-1">Total</p>
                         <p className="text-base font-extrabold text-[#f97316]">
-                          ${order.total.toFixed(2)}
+                          ₹{order.total.toLocaleString('en-IN')}
                         </p>
                       </div>
                       <div className="bg-gray-50 rounded-xl p-3 text-center">
@@ -506,19 +506,19 @@ export default function OrdersPage() {
                         >
                           {selectedOrder.shipping === 0
                             ? "FREE"
-                            : `$${selectedOrder.shipping.toFixed(2)}`}
+                            : `₹${selectedOrder.shipping.toLocaleString('en-IN')}`}
                         </span>
                       </div>
                       <div className="flex justify-between text-gray-500">
                         <span>Tax</span>
                         <span className="font-medium text-gray-700">
-                          ${selectedOrder.tax.toFixed(2)}
+                          ₹{selectedOrder.tax.toLocaleString('en-IN')}
                         </span>
                       </div>
                       <div className="flex justify-between pt-3 border-t border-gray-100">
                         <span className="font-bold text-gray-900">Total</span>
                         <span className="text-lg font-extrabold text-[#f97316]">
-                          ${selectedOrder.total.toFixed(2)}
+                          ₹{selectedOrder.total.toLocaleString('en-IN')}
                         </span>
                       </div>
                     </div>

@@ -877,7 +877,7 @@ export default function ProfilePage() {
                     </div>
                     <div className="text-right shrink-0">
                       <p className="font-bold text-[#f97316] text-sm">
-                        ${order.total.toFixed(2)}
+                        ₹{order.total.toLocaleString('en-IN')}
                       </p>
                       <span
                         className={`inline-block mt-1 text-[10px] font-semibold px-2 py-0.5 rounded-full ${

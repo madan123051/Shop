@@ -12,7 +12,7 @@ const navLinks = [
   { label: "Blinds", href: "/shop?category=Blinds" },
   { label: "Pleated Mesh", href: "/shop?category=Pleated+Mesh" },
   { label: "Honeycomb", href: "/shop?category=Honeycomb" },
-  { label: "Partitions", href: "/shop?category=Partition+%26+Security" },
+  { label: "Partitions & Doors", href: "/shop?category=Partitions+%26+Doors" },
   { label: "All Products", href: "/shop" },
 ];
 
