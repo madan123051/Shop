@@ -311,8 +311,9 @@ export default function AdminDashboard() {
 
   const handleSaveProduct = async () => {
     // Strict Validation
-    if (!formData.name || !formData.category || !formData.subCategory || !formData.price || !formData.image) {
-      alert("Required fields missing: Name, Main Category, Sub Category, Price, and Main Image.");
+    const isPriceValid = formData.isCustomizable ? Boolean(formData.baseRate) : Boolean(formData.price);
+    if (!formData.name || !formData.category || !formData.subCategory || !isPriceValid || !formData.image) {
+      alert("Required fields missing: Name, Main Category, Sub Category, " + (formData.isCustomizable ? "Base Rate" : "Price") + ", and Main Image.");
       return;
     }
     
