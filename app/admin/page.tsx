@@ -331,9 +331,9 @@ export default function AdminDashboard() {
 
     try {
       // 1. Delete Media from Storage
-      const mediaUrls = [product.image, ...(product.images || []), product.video].filter(Boolean);
+      const mediaUrls = [product.image, ...(product.images || []), product.video].filter(Boolean) as string[];
       for (const url of mediaUrls) {
-        if (url.includes('firebasestorage.googleapis.com')) {
+        if (url && url.includes('firebasestorage.googleapis.com')) {
           try {
             const fileRef = ref(storage, url);
             await deleteObject(fileRef);
