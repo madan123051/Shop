@@ -134,18 +134,24 @@ export default function ProductCard({ product }: { product: Product }) {
 
         {/* Social Stats */}
         <div className="flex items-center gap-4 mb-4 text-gray-400">
-          <div className="flex items-center gap-1">
+          <button 
+            onClick={handleFavorite}
+            className="flex items-center gap-1 hover:text-red-500 transition-colors"
+          >
             <Heart className={`w-3.5 h-3.5 ${isFavorite ? "text-red-500 fill-red-500" : ""}`} />
             <span className="text-[11px] font-medium">{product.likes || 0}</span>
-          </div>
+          </button>
           <div className="flex items-center gap-1">
             <Eye className="w-3.5 h-3.5" />
             <span className="text-[11px] font-medium">{product.views || 0}</span>
           </div>
-          <div className="flex items-center gap-1">
+          <button 
+            onClick={handleShare}
+            className="flex items-center gap-1 hover:text-[#f97316] transition-colors"
+          >
             <Share2 className="w-3.5 h-3.5" />
             <span className="text-[11px] font-medium">{product.shares || 0}</span>
-          </div>
+          </button>
         </div>
 
         {/* Offer Tag */}

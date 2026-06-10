@@ -17,6 +17,7 @@ interface ProductsContextType {
   deleteProduct: (id: string) => Promise<void>;
   incrementView: (id: string) => Promise<void>;
   toggleLike: (id: string, currentLikes: number) => Promise<void>;
+  addComment: (productId: string, comment: { user: string; text: string; rating: number }) => Promise<void>;
 }
 
 const ProductsContext = createContext<ProductsContextType | undefined>(undefined);
@@ -74,9 +75,25 @@ export function ProductsProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
+  const addComment = async (productId: string, comment: { user: string; text: string; rating: number }) => {
+    const productRef = doc(db, COLLECTION, productId);
+    const product = products.find(p => p.id === productId);
+    if (!product) return;
+
+    const newCommentsList = [...(product.commentsList || []), { ...comment, date: new Date().toISOString() }];
+    const newRating = ((product.rating * (product.reviews || 0)) + comment.rating) / ((product.reviews || 0) + 1);
+
+    await updateDoc(productRef, {
+      commentsList: newCommentsList,
+      comments: newCommentsList.length,
+      reviews: (product.reviews || 0) + 1,
+      rating: Number(newRating.toFixed(1))
+    });
+  };
+
   return (
     <ProductsContext.Provider
-      value={{ products, categories, isLoading, addProduct, updateProduct, deleteProduct, incrementView, toggleLike }}
+      value={{ products, categories, isLoading, addProduct, updateProduct, deleteProduct, incrementView, toggleLike, addComment }}
     >
       {children}
     </ProductsContext.Provider>

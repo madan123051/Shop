@@ -15,6 +15,7 @@ export interface Product {
   likes?: number;
   shares?: number;
   comments?: number;
+  commentsList?: { user: string; text: string; rating: number; date: string }[];
   views?: number;
   description: string;
   features: string[];
