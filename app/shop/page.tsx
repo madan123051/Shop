@@ -9,9 +9,10 @@ import { Search, SlidersHorizontal, X } from "lucide-react";
 function ShopContent() {
   const searchParams = useSearchParams();
   const initialCategory = searchParams.get("category") || "All";
+  const initialSearch = searchParams.get("search") || "";
   const { products, categories } = useProducts();
 
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(initialSearch);
   const [selectedCategory, setSelectedCategory] = useState(initialCategory);
   const [sortBy, setSortBy] = useState("default");
   const [selectedSubCategory, setSelectedSubCategory] = useState("All");
@@ -19,6 +20,11 @@ function ShopContent() {
   useEffect(() => {
     setSelectedSubCategory("All");
   }, [selectedCategory]);
+
+  useEffect(() => {
+    const s = searchParams.get("search");
+    if (s) setSearch(s);
+  }, [searchParams]);
 
   const allCategories = ["All", ...categories];
 

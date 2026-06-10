@@ -6,9 +6,14 @@ export interface Product {
   price: number;
   originalPrice?: number;
   category: string;
-  image: string;
+  image: string; // Primary image
+  images?: string[]; // Multiple images (8-10)
+  video?: string; // Product video URL
   rating: number;
   reviews: number;
+  likes?: number;
+  shares?: number;
+  comments?: number;
   description: string;
   features: string[];
   badge?: "Sale" | "New" | "Hot" | "Best Seller";
@@ -17,6 +22,7 @@ export interface Product {
   discountPercent?: number;
   offerLabel?: string;
   offerValidTill?: string;
+  subCategory?: string;
 }
 
 export const categories: string[] = [
@@ -42,8 +48,12 @@ export const products: Product[] = [
     originalPrice: 1999,
     category: "Roller Blinds",
     image: "https://placehold.co/400x300/1a3a6b/ffffff?text=Roller+Blinds",
+    images: ["https://placehold.co/400x300/1a3a6b/ffffff?text=Roller+Blinds+1", "https://placehold.co/400x300/1a3a6b/ffffff?text=Roller+Blinds+2"],
     rating: 4.7,
     reviews: 152,
+    likes: 245,
+    shares: 42,
+    comments: 18,
     description:
       "Sleek and minimalist roller blinds that glide effortlessly. Perfect for living rooms, offices, and bedrooms. Available in light-filtering and blackout variants.",
     features: [
@@ -63,8 +73,12 @@ export const products: Product[] = [
     originalPrice: 2299,
     category: "Zebra Blinds",
     image: "https://placehold.co/400x300/1a3a6b/ffffff?text=Zebra+Blinds",
+    images: ["https://placehold.co/400x300/1a3a6b/ffffff?text=Zebra+Blinds+1"],
     rating: 4.6,
     reviews: 98,
+    likes: 180,
+    shares: 25,
+    comments: 12,
     description:
       "Dual-layered zebra blinds with alternating sheer and opaque stripes for perfect light control at any time of day.",
     features: [
@@ -86,6 +100,9 @@ export const products: Product[] = [
     image: "https://placehold.co/400x300/1a3a6b/ffffff?text=Wooden+Blinds",
     rating: 4.8,
     reviews: 74,
+    likes: 310,
+    shares: 56,
+    comments: 24,
     description:
       "Elegant natural wood blinds that add warmth and sophistication to any interior. Crafted from premium hardwood with a smooth finish.",
     features: [
@@ -107,6 +124,9 @@ export const products: Product[] = [
     image: "https://placehold.co/400x300/1a3a6b/ffffff?text=Printed+Blinds",
     rating: 4.5,
     reviews: 61,
+    likes: 120,
+    shares: 15,
+    comments: 8,
     description:
       "Personalised printed blinds featuring high-resolution digital prints. Turn your window into a work of art with custom photos or patterns.",
     features: [
@@ -129,6 +149,9 @@ export const products: Product[] = [
     image: "https://placehold.co/400x300/1a3a6b/ffffff?text=Polyster+Pleated+Mesh",
     rating: 4.5,
     reviews: 203,
+    likes: 450,
+    shares: 88,
+    comments: 35,
     description:
       "Durable and cost-effective polyester pleated mesh screens for windows and doors. Keeps insects out while allowing fresh air in.",
     features: [
@@ -150,6 +173,9 @@ export const products: Product[] = [
     image: "https://placehold.co/400x300/1a3a6b/ffffff?text=SS+304+Pleated+Mesh",
     rating: 4.8,
     reviews: 117,
+    likes: 290,
+    shares: 45,
+    comments: 21,
     description:
       "Premium 304-grade stainless steel pleated mesh — the strongest insect and security screen available. Rust-proof, pet-proof, and child-safe.",
     features: [
@@ -173,6 +199,9 @@ export const products: Product[] = [
     image: "https://placehold.co/400x300/1a3a6b/ffffff?text=Honeycomb+Blackout",
     rating: 4.9,
     reviews: 88,
+    likes: 210,
+    shares: 32,
+    comments: 15,
     description:
       "Cellular honeycomb blackout blinds with superior thermal insulation. Ideal for bedrooms — blocks 100% light and reduces outside noise.",
     features: [
@@ -194,6 +223,9 @@ export const products: Product[] = [
     image: "https://placehold.co/400x300/1a3a6b/ffffff?text=2in1+Pleated+%2B+Honeycomb",
     rating: 4.7,
     reviews: 45,
+    likes: 150,
+    shares: 20,
+    comments: 10,
     description:
       "The best of both worlds — insect protection from the pleated mesh combined with thermal honeycomb insulation in a single elegant frame.",
     features: [
@@ -217,6 +249,9 @@ export const products: Product[] = [
     image: "https://placehold.co/400x300/1a3a6b/ffffff?text=PVC+Partition",
     rating: 4.5,
     reviews: 56,
+    likes: 95,
+    shares: 12,
+    comments: 5,
     description:
       "Lightweight and versatile PVC partitions for dividing spaces without permanent construction. Easy to install and remove.",
     features: [
@@ -237,6 +272,9 @@ export const products: Product[] = [
     image: "https://placehold.co/400x300/1a3a6b/ffffff?text=Security+Mesh",
     rating: 4.8,
     reviews: 92,
+    likes: 185,
+    shares: 28,
+    comments: 14,
     description:
       "High-tensile stainless steel security mesh screens that protect against intrusion while maintaining clear views and airflow.",
     features: [
@@ -258,6 +296,9 @@ export const products: Product[] = [
     image: "https://placehold.co/400x300/1a3a6b/ffffff?text=Crystal+Partition+Door",
     rating: 4.9,
     reviews: 33,
+    likes: 140,
+    shares: 22,
+    comments: 9,
     description:
       "Stunning crystal-clear transparent partition doors that add a premium look to offices and homes while defining spaces beautifully.",
     features: [
