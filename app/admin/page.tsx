@@ -54,9 +54,22 @@ const CATEGORY_MAP: Record<string, string[]> = {
   "Blinds": ["Roller Blinds", "Zebra Blinds", "Wooden Blinds", "Printed Blinds"],
   "Pleated Mesh": ["Polyster Pleated Mesh", "SS 304 Pleated Mesh"],
   "Honeycomb": ["Honeycomb Blackout", "Honeycomb 2in1"],
-  "Partitions & Doors": ["PVC Doors", "Security Mesh", "Crystal Doors"],
+  "Partition & Security": ["PVC Partition", "Security Mesh", "Crystal Partition Door"],
+  "Accessories": ["Cleaning Kit", "Installation Tool", "Replacement Parts"],
 };
-const MAIN_CATEGORIES = Object.keys(CATEGORY_MAP);
+const MAIN_CATEGORIES = [
+  "Blinds",
+  "Roller Blinds",
+  "Zebra Blinds",
+  "Wooden Blinds",
+  "Printed Blinds",
+  "Pleated Mesh",
+  "SS 304 Pleated Mesh",
+  "Honeycomb",
+  "Partition & Security",
+  "Security Mesh",
+  "Accessories",
+];
 
 const STATUS_DISPLAY: Record<ContextOrderStatus, AdminOrderStatus> = {
   pending: "Pending",
@@ -286,6 +299,10 @@ export default function AdminDashboard() {
       features: [],
       badge: undefined,
       inStock: true,
+      festivalOffer: "",
+      discountPercent: undefined,
+      offerLabel: "",
+      offerValidTill: "",
     });
   };
 
@@ -723,6 +740,47 @@ export default function AdminDashboard() {
                       className="w-4 h-4 border border-gray-300 rounded focus:outline-none accent-[#f97316]" />
                     <span className="text-sm font-semibold text-gray-700">In Stock</span>
                   </label>
+                </div>
+              </div>
+
+              {/* ── Festival & Offers Section ── */}
+              <div className="pt-4 border-t border-gray-100">
+                <h4 className="text-sm font-bold text-[#1a3a6b] mb-3 flex items-center gap-2">
+                  <Star className="w-4 h-4 text-orange-500 fill-orange-500" />
+                  Festival Offers & Discounts
+                </h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">Festival Offer Badge</label>
+                    <select value={formData.festivalOffer || ""} onChange={e => setFormData({ ...formData, festivalOffer: e.target.value })}
+                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-[#f97316]">
+                      <option value="">No Festival Offer</option>
+                      <option value="Diwali Special">🪔 Diwali Special</option>
+                      <option value="Holi Dhamaka">🎨 Holi Dhamaka</option>
+                      <option value="Eid Mubarak">🌙 Eid Mubarak</option>
+                      <option value="Christmas Sale">🎄 Christmas Sale</option>
+                      <option value="New Year Deal">🎉 New Year Deal</option>
+                      <option value="Independence Day">🇮🇳 Independence Day</option>
+                      <option value="Limited Time">⏳ Limited Time Offer</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">Discount (%)</label>
+                    <input type="number" value={formData.discountPercent || ""} onChange={e => setFormData({ ...formData, discountPercent: e.target.value ? parseInt(e.target.value) : undefined })}
+                      placeholder="e.g. 20"
+                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-[#f97316]" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">Offer Label</label>
+                    <input type="text" value={formData.offerLabel || ""} onChange={e => setFormData({ ...formData, offerLabel: e.target.value })}
+                      placeholder="e.g. Buy 1 Get 1 Free"
+                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-[#f97316]" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">Offer Valid Till</label>
+                    <input type="date" value={formData.offerValidTill || ""} onChange={e => setFormData({ ...formData, offerValidTill: e.target.value })}
+                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-[#f97316]" />
+                  </div>
                 </div>
               </div>
             </div>

@@ -45,6 +45,12 @@ export default function ProductCard({ product }: { product: Product }) {
             {product.badge}
           </span>
         )}
+        {/* Festival Offer Badge */}
+        {product.festivalOffer && (
+          <span className="absolute bottom-3 left-3 bg-gradient-to-r from-orange-500 to-red-500 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-lg animate-pulse">
+            {product.festivalOffer}
+          </span>
+        )}
         <button
           onClick={handleFavorite}
           className="absolute top-3 right-3 w-8 h-8 bg-white rounded-full shadow flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50"
@@ -85,6 +91,16 @@ export default function ProductCard({ product }: { product: Product }) {
           <span className="text-xs text-gray-500">({product.reviews})</span>
         </div>
 
+        {/* Offer Label */}
+        {product.offerLabel && (
+          <p className="text-xs text-orange-600 font-semibold bg-orange-50 px-2 py-1 rounded-lg mb-2 border border-orange-100">
+            🎁 {product.offerLabel}
+            {product.offerValidTill && (
+              <span className="text-gray-400 font-normal ml-1">· till {new Date(product.offerValidTill).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</span>
+            )}
+          </p>
+        )}
+
         {/* Stock Status */}
         {!product.inStock && (
           <p className="text-xs text-red-600 font-semibold mb-2">Out of Stock</p>
@@ -93,12 +109,19 @@ export default function ProductCard({ product }: { product: Product }) {
         {/* Price + Cart */}
         <div className="mt-auto flex items-center justify-between gap-2">
           <div>
-            <span className="text-lg font-bold text-gray-900">
-              ₹{product.price.toLocaleString('en-IN')}
-            </span>
+            <div className="flex items-center gap-1 flex-wrap">
+              <span className="text-lg font-bold text-gray-900">
+                ₹{product.price.toLocaleString("en-IN")}
+              </span>
+              {product.discountPercent && (
+                <span className="text-xs font-bold text-green-600 bg-green-50 px-1.5 py-0.5 rounded-full">
+                  {product.discountPercent}% OFF
+                </span>
+              )}
+            </div>
             {product.originalPrice && (
-              <span className="text-sm text-gray-400 line-through ml-1.5">
-                ₹{product.originalPrice.toLocaleString('en-IN')}
+              <span className="text-sm text-gray-400 line-through">
+                ₹{product.originalPrice.toLocaleString("en-IN")}
               </span>
             )}
           </div>
