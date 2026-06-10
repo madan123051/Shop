@@ -391,7 +391,7 @@ export default function AdminDashboard() {
             className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-[#f97316] focus:ring-2 focus:ring-[#f97316]/20" />
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          {(["All"] as const).concat(ALL_STATUSES).map(s => (
+          {(["All" as const, ...ALL_STATUSES] as const).map(s => (
             <button key={s} onClick={() => setStatusFilter(s)}
               className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${statusFilter === s ? "bg-[#1a3a6b] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
               {s}
