@@ -1,24 +1,31 @@
 "use client";
 
-import { use } from "react";
-import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { products } from "@/data/products";
+import { useProducts } from "@/context/ProductsContext";
 import { useCart } from "@/context/CartContext";
 import { Star, ShoppingCart, ArrowLeft, Check, Package } from "lucide-react";
 
-export default function ProductPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+export default function ProductPage({ params }: { params: { id: string } }) {
+  const { id } = params;
+  const { products, isLoading } = useProducts();
   const { addToCart } = useCart();
   const product = products.find((p) => p.id === id);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600" />
+      </div>
+    );
+  }
 
   if (!product) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center text-center px-4">
         <div className="text-6xl mb-4">📦</div>
         <h2 className="text-2xl font-bold text-gray-800 mb-2">Product Not Found</h2>
-        <p className="text-gray-500 mb-6">This product doesn't exist or has been removed.</p>
+        <p className="text-gray-500 mb-6">This product doesn&apos;t exist or has been removed.</p>
         <Link href="/shop" className="inline-flex items-center gap-2 bg-indigo-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-indigo-700 transition-colors">
           <ArrowLeft className="w-4 h-4" /> Back to Shop
         </Link>
@@ -36,6 +43,8 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
   const discount = product.originalPrice
     ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
     : null;
+
+  const features = Array.isArray(product.features) ? product.features : [];
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
@@ -109,12 +118,12 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
           <p className="text-gray-600 leading-relaxed mb-6">{product.description}</p>
 
           {/* Features */}
-          {product.features.length > 0 && (
+          {features.length > 0 && (
             <div className="mb-6">
               <h3 className="font-semibold text-gray-800 mb-3">Key Features</h3>
               <ul className="space-y-2">
-                {product.features.map((f) => (
-                  <li key={f} className="flex items-center gap-2 text-sm text-gray-600">
+                {features.map((f, i) => (
+                  <li key={i} className="flex items-center gap-2 text-sm text-gray-600">
                     <Check className="w-4 h-4 text-emerald-500 shrink-0" />
                     {f}
                   </li>
