@@ -6,6 +6,7 @@ import { useState } from "react";
 import { Star, ShoppingCart, Heart, Check, Share2, MessageCircle, Eye } from "lucide-react";
 import { Product } from "@/data/products";
 import { useCart } from "@/context/CartContext";
+import { useProducts } from "@/context/ProductsContext";
 
 const badgeColors: Record<string, string> = {
   Sale: "bg-red-500",
@@ -16,9 +17,9 @@ const badgeColors: Record<string, string> = {
 
 export default function ProductCard({ product }: { product: Product }) {
   const { addToCart } = useCart();
+  const { toggleLike, incrementView } = useProducts();
   const [isAdded, setIsAdded] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
-  const [likes, setLikes] = useState(product.likes || 0);
 
   const handleAddToCart = () => {
     addToCart(product);
@@ -26,12 +27,32 @@ export default function ProductCard({ product }: { product: Product }) {
     setTimeout(() => setIsAdded(false), 2000);
   };
 
-  const handleFavorite = (e: React.MouseEvent) => {
+  const handleFavorite = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!isFavorite) setLikes(prev => prev + 1);
-    else setLikes(prev => prev - 1);
-    setIsFavorite(!isFavorite);
+    if (!isFavorite) {
+      await toggleLike(product.id, product.likes || 0);
+      setIsFavorite(true);
+    }
+  };
+
+  const handleShare = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (navigator.share) {
+      navigator.share({
+        title: product.name,
+        text: product.description,
+        url: `${window.location.origin}/product/${product.id}`,
+      });
+    } else {
+      navigator.clipboard.writeText(`${window.location.origin}/product/${product.id}`);
+      alert("Link copied to clipboard!");
+    }
+  };
+
+  const handleView = () => {
+    incrementView(product.id);
   };
 
   return (
@@ -46,10 +67,17 @@ export default function ProductCard({ product }: { product: Product }) {
         >
           <Heart className={`w-5 h-5 ${isFavorite ? "fill-current" : ""}`} />
         </button>
-        <button className="w-10 h-10 bg-white text-gray-400 hover:text-[#f97316] rounded-full shadow-lg flex items-center justify-center transition-all">
+        <button 
+          onClick={handleShare}
+          className="w-10 h-10 bg-white text-gray-400 hover:text-[#f97316] rounded-full shadow-lg flex items-center justify-center transition-all"
+        >
           <Share2 className="w-5 h-5" />
         </button>
-        <Link href={`/product/${product.id}`} className="w-10 h-10 bg-white text-gray-400 hover:text-blue-500 rounded-full shadow-lg flex items-center justify-center transition-all">
+        <Link 
+          href={`/product/${product.id}`} 
+          onClick={handleView}
+          className="w-10 h-10 bg-white text-gray-400 hover:text-blue-500 rounded-full shadow-lg flex items-center justify-center transition-all"
+        >
           <Eye className="w-5 h-5" />
         </Link>
       </div>
@@ -108,11 +136,11 @@ export default function ProductCard({ product }: { product: Product }) {
         <div className="flex items-center gap-4 mb-4 text-gray-400">
           <div className="flex items-center gap-1">
             <Heart className={`w-3.5 h-3.5 ${isFavorite ? "text-red-500 fill-red-500" : ""}`} />
-            <span className="text-[11px] font-medium">{likes}</span>
+            <span className="text-[11px] font-medium">{product.likes || 0}</span>
           </div>
           <div className="flex items-center gap-1">
-            <MessageCircle className="w-3.5 h-3.5" />
-            <span className="text-[11px] font-medium">{product.comments || 0}</span>
+            <Eye className="w-3.5 h-3.5" />
+            <span className="text-[11px] font-medium">{product.views || 0}</span>
           </div>
           <div className="flex items-center gap-1">
             <Share2 className="w-3.5 h-3.5" />
