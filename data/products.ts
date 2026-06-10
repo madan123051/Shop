@@ -1,12 +1,25 @@
 // Product data for NewTech Home Solutions shop
 
+export interface PriceModifier {
+  id: string;
+  label: string;
+  type: "fixed" | "percentage" | "area-based";
+  value: number;
+}
+
+export interface CustomOptionGroup {
+  id: string;
+  title: string;
+  options: PriceModifier[];
+}
+
 export interface Product {
   id: string;
   name: string;
-  price: number;
+  price: number; // This will be the base price or base rate
   originalPrice?: number;
-  category: string; // This will now represent the PARENT category
-  subCategory: string; // This will represent the CHILD category
+  category: string;
+  subCategory: string;
   image: string;
   images?: string[];
   video?: string;
@@ -25,6 +38,14 @@ export interface Product {
   discountPercent?: number;
   offerLabel?: string;
   offerValidTill?: string;
+  
+  // Customization Fields
+  isCustomizable?: boolean;
+  baseRate?: number; // per sq ft
+  unit?: "ft" | "inch" | "cm";
+  minimumArea?: number;
+  installationCost?: number;
+  customOptions?: CustomOptionGroup[];
 }
 
 export const CATEGORY_HIERARCHY: Record<string, string[]> = {
@@ -37,3 +58,15 @@ export const CATEGORY_HIERARCHY: Record<string, string[]> = {
 export const categories: string[] = Object.keys(CATEGORY_HIERARCHY);
 
 export const products: Product[] = [];
+
+export interface DeliveryLocation {
+  id: string;
+  name: string; // City or State name
+  charge: number;
+}
+
+export interface DeliverySettings {
+  locations: DeliveryLocation[];
+  selfPickupAvailable: boolean;
+  freeDeliveryThreshold?: number;
+}

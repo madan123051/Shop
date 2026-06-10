@@ -18,6 +18,53 @@ export default function ProductPage({ params }: { params: { id: string } }) {
   const [userRating, setUserRating] = useState(5);
   const [userName, setUserName] = useState("");
 
+  // Configurator State
+  const [width, setWidth] = useState(1);
+  const [height, setHeight] = useState(1);
+  const [unit, setUnit] = useState(product?.unit || "ft");
+  const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
+  const [calculatedPrice, setCalculatedPrice] = useState(product?.price || 0);
+  const [area, setArea] = useState(0);
+
+  useEffect(() => {
+    if (!product || !product.isCustomizable) {
+      setCalculatedPrice(product?.price || 0);
+      return;
+    }
+
+    // Calculate Area
+    const currentArea = width * height;
+    const minArea = product.minimumArea || 0;
+    const effectiveArea = Math.max(currentArea, minArea);
+    setArea(currentArea);
+
+    // Base Price based on Area
+    let total = (product.baseRate || 0) * effectiveArea;
+
+    // Add Modifiers
+    if (product.customOptions) {
+      product.customOptions.forEach(group => {
+        const selectedId = selectedOptions[group.id];
+        if (selectedId) {
+          const option = group.options.find(o => o.id === selectedId);
+          if (option) {
+            const val = Number(option.value);
+            if (option.type === "fixed") total += val;
+            else if (option.type === "percentage") total += (total * val) / 100;
+            else if (option.type === "area-based") total += val * effectiveArea;
+          }
+        }
+      });
+    }
+
+    // Installation
+    if (selectedOptions["installation"] === "yes") {
+      total += Number(product.installationCost || 0);
+    }
+
+    setCalculatedPrice(Math.round(total));
+  }, [product, width, height, unit, selectedOptions]);
+
   useEffect(() => {
     if (product) {
       incrementView(product.id);
@@ -46,7 +93,31 @@ export default function ProductPage({ params }: { params: { id: string } }) {
 
   const handleAddToCart = () => {
     if (!product) return;
-    addToCart(product);
+    
+    if (product.isCustomizable) {
+      const customization = {
+        width,
+        height,
+        unit,
+        area,
+        selectedOptions: Object.entries(selectedOptions).map(([groupId, optionId]) => {
+          const group = product.customOptions?.find(g => g.id === groupId);
+          const option = group?.options.find(o => o.id === optionId);
+          return {
+            groupId,
+            groupTitle: group?.title || groupId,
+            optionId,
+            optionLabel: option?.label || optionId,
+            price: option?.value || 0
+          };
+        }),
+        calculatedPrice
+      };
+      addToCart(product, customization);
+    } else {
+      addToCart(product);
+    }
+
     setIsAdded(true);
     setTimeout(() => setIsAdded(false), 2000);
   };
@@ -158,7 +229,9 @@ export default function ProductPage({ params }: { params: { id: string } }) {
 
           {/* Price */}
           <div className="flex items-end gap-3 mb-6">
-            <span className="text-4xl font-extrabold text-gray-900">₹{product.price.toLocaleString('en-IN')}</span>
+            <span className="text-4xl font-extrabold text-gray-900">
+              {product.isCustomizable ? `₹${product.baseRate}/sq ${product.unit}` : `₹${product.price.toLocaleString('en-IN')}`}
+            </span>
             {product.originalPrice && (
               <>
                 <span className="text-xl text-gray-400 line-through mb-1">₹{product.originalPrice.toLocaleString('en-IN')}</span>
@@ -170,6 +243,97 @@ export default function ProductPage({ params }: { params: { id: string } }) {
           </div>
 
           <p className="text-gray-600 leading-relaxed mb-6">{product.description}</p>
+
+          {/* Configurator */}
+          {product.isCustomizable && (
+            <div className="bg-gray-50 rounded-3xl p-6 mb-8 border border-gray-100">
+              <h3 className="text-lg font-bold text-[#1a3a6b] mb-4 flex items-center gap-2">
+                <Package className="w-5 h-5" /> Customize Your Product
+              </h3>
+              
+              {/* Dimensions */}
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Width ({unit})</label>
+                  <input 
+                    type="number" 
+                    min="1" 
+                    value={width} 
+                    onChange={(e) => setWidth(Number(e.target.value))}
+                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#f97316] outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Height ({unit})</label>
+                  <input 
+                    type="number" 
+                    min="1" 
+                    value={height} 
+                    onChange={(e) => setHeight(Number(e.target.value))}
+                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#f97316] outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between mb-6 p-3 bg-white rounded-xl border border-gray-100">
+                <span className="text-sm font-bold text-gray-600">Total Area:</span>
+                <span className="text-sm font-black text-[#f97316]">{area.toFixed(2)} sq {unit}</span>
+              </div>
+
+              {/* Custom Options */}
+              <div className="space-y-4">
+                {product.customOptions?.map(group => (
+                  <div key={group.id}>
+                    <label className="block text-xs font-bold text-gray-500 uppercase mb-2">{group.title}</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {group.options.map(option => (
+                        <button
+                          key={option.id}
+                          onClick={() => setSelectedOptions(prev => ({ ...prev, [group.id]: option.id }))}
+                          className={`px-4 py-2.5 text-sm font-bold rounded-xl border-2 transition-all ${
+                            selectedOptions[group.id] === option.id 
+                              ? "border-[#f97316] bg-orange-50 text-[#f97316]" 
+                              : "border-gray-100 bg-white text-gray-500 hover:border-gray-200"
+                          }`}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+
+                {/* Installation */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Installation Required?</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {["yes", "no"].map(opt => (
+                      <button
+                        key={opt}
+                        onClick={() => setSelectedOptions(prev => ({ ...prev, "installation": opt }))}
+                        className={`px-4 py-2.5 text-sm font-bold rounded-xl border-2 transition-all ${
+                          selectedOptions["installation"] === opt 
+                            ? "border-[#f97316] bg-orange-50 text-[#f97316]" 
+                            : "border-gray-100 bg-white text-gray-500 hover:border-gray-200"
+                        }`}
+                      >
+                        {opt.toUpperCase()}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Dynamic Price Display */}
+              <div className="mt-8 pt-6 border-t border-gray-200">
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-500 font-bold">Estimated Total:</span>
+                  <span className="text-3xl font-black text-gray-900">₹{calculatedPrice.toLocaleString("en-IN")}</span>
+                </div>
+                <p className="text-[10px] text-gray-400 mt-2 italic">*Final price may vary based on actual measurements during site visit.</p>
+              </div>
+            </div>
+          )}
 
           {/* Features */}
           {features.length > 0 && (

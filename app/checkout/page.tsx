@@ -1,23 +1,40 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { useOrder } from "@/context/OrderContext";
-import { CheckCircle, CreditCard, MapPin, User, ArrowLeft, Loader } from "lucide-react";
+import { CheckCircle, CreditCard, MapPin, User, ArrowLeft, Loader, Truck } from "lucide-react";
 
 type Step = "info" | "shipping" | "payment" | "success";
 
 export default function CheckoutPage() {
   const router = useRouter();
   const { cart, totalPrice, clearCart } = useCart();
-  const { user } = useAuth();
-  const { createOrder } = useOrder();
+  const { user, isLoading: authLoading } = useAuth();
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push("/login?redirect=/checkout");
+    }
+  }, [user, authLoading, router]);
+
+  if (authLoading) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <Loader className="w-10 h-10 animate-spin text-[#f97316]" />
+      </div>
+    );
+  }
+
+  if (!user) return null;
+  const { createOrder, deliverySettings } = useOrder();
   const [step, setStep] = useState<Step>("info");
   const [orderId, setOrderId] = useState<string>("");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [deliveryMethod, setDeliveryMethod] = useState<"delivery" | "pickup">("delivery");
   const [form, setForm] = useState({
     firstName: user?.firstName || "",
     lastName: user?.lastName || "",
@@ -38,8 +55,21 @@ export default function CheckoutPage() {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const shipping = totalPrice >= 50 ? 0 : 5.99;
-  const tax = totalPrice * 0.08;
+  const getShippingCost = () => {
+    if (deliveryMethod === "pickup") return 0;
+    if (deliverySettings?.freeDeliveryThreshold && totalPrice >= deliverySettings.freeDeliveryThreshold) return 0;
+    
+    // Find location based charge
+    const location = deliverySettings?.locations.find(l => 
+      l.name.toLowerCase() === form.city.toLowerCase() || 
+      l.name.toLowerCase() === form.state.toLowerCase()
+    );
+    
+    return location ? location.charge : (totalPrice >= 5000 ? 0 : 150); // Default fallback
+  };
+
+  const shipping = getShippingCost();
+  const tax = totalPrice * 0.18; // 18% GST for India
   const grandTotal = totalPrice + shipping + tax;
 
   const handlePlaceOrder = async () => {
@@ -53,6 +83,7 @@ export default function CheckoutPage() {
         tax,
         total: grandTotal,
         status: "confirmed",
+        deliveryMethod,
         shippingAddress: {
           firstName: form.firstName,
           lastName: form.lastName,
@@ -205,7 +236,32 @@ export default function CheckoutPage() {
 
           {step === "shipping" && (
             <div>
-              <h2 className="text-lg font-bold text-[#1a3a6b] mb-5">Shipping Address</h2>
+              <h2 className="text-lg font-bold text-[#1a3a6b] mb-5">Delivery Method</h2>
+              
+              <div className="grid grid-cols-2 gap-4 mb-8">
+                <button 
+                  onClick={() => setDeliveryMethod("delivery")}
+                  className={`p-4 rounded-2xl border-2 text-left transition-all ${deliveryMethod === "delivery" ? "border-[#f97316] bg-orange-50" : "border-gray-100 hover:border-gray-200"}`}
+                >
+                  <Truck className={`w-6 h-6 mb-2 ${deliveryMethod === "delivery" ? "text-[#f97316]" : "text-gray-400"}`} />
+                  <p className="font-bold text-sm">Home Delivery</p>
+                  <p className="text-xs text-gray-500">Delivered to your door</p>
+                </button>
+                {deliverySettings?.selfPickupAvailable && (
+                  <button 
+                    onClick={() => setDeliveryMethod("pickup")}
+                    className={`p-4 rounded-2xl border-2 text-left transition-all ${deliveryMethod === "pickup" ? "border-[#f97316] bg-orange-50" : "border-gray-100 hover:border-gray-200"}`}
+                  >
+                    <MapPin className={`w-6 h-6 mb-2 ${deliveryMethod === "pickup" ? "text-[#f97316]" : "text-gray-400"}`} />
+                    <p className="font-bold text-sm">Self Pickup</p>
+                    <p className="text-xs text-gray-500">Collect from our store</p>
+                  </button>
+                )}
+              </div>
+
+              <h2 className="text-lg font-bold text-[#1a3a6b] mb-5">
+                {deliveryMethod === "delivery" ? "Shipping Address" : "Pickup Contact Info"}
+              </h2>
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">Street Address</label>
