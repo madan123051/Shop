@@ -37,6 +37,10 @@ export interface User {
   firstName: string;
   lastName: string;
   phone: string;
+  dateOfBirth?: string;
+  gender?: string;
+  mainLocation?: string;
+  profilePhoto?: string; // base64 data URL or remote URL for profile picture
   addresses: Address[];
   createdAt: string;
   isAdmin: boolean;
@@ -47,15 +51,21 @@ interface AuthContextType {
   isLoggedIn: boolean;
   isAdmin: boolean;
   isLoading: boolean;
-  /** Email + password login — returns { isAdmin } so caller can redirect */
   login: (email: string, password: string) => Promise<{ isAdmin: boolean }>;
-  /** Google OAuth login — returns { isAdmin } so caller can redirect */
   loginWithGoogle: () => Promise<{ isAdmin: boolean }>;
-  register: (email: string, password: string, firstName: string, lastName: string) => Promise<void>;
+  register: (
+    email: string,
+    password: string,
+    firstName: string,
+    lastName: string
+  ) => Promise<void>;
   logout: () => Promise<void>;
   updateProfile: (updates: Partial<User>) => Promise<void>;
   addAddress: (address: Omit<Address, "id">) => Promise<void>;
-  updateAddress: (id: string, updates: Partial<Omit<Address, "id">>) => Promise<void>;
+  updateAddress: (
+    id: string,
+    updates: Partial<Omit<Address, "id">>
+  ) => Promise<void>;
   deleteAddress: (id: string) => Promise<void>;
   setDefaultAddress: (id: string) => Promise<void>;
 }
@@ -63,19 +73,55 @@ interface AuthContextType {
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL ?? "";
+const LOCAL_FIELDS = [
+  "firstName",
+  "lastName",
+  "phone",
+  "dateOfBirth",
+  "gender",
+  "mainLocation",
+  "profilePhoto",
+  "addresses",
+] as const;
+
+function getLocalProfile(uid: string): Record<string, any> {
+  if (typeof window === "undefined") return {};
+  try {
+    const stored = localStorage.getItem(`shopUserProfile_${uid}`);
+    return stored ? JSON.parse(stored) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveLocalProfile(uid: string, data: Record<string, any>) {
+  if (typeof window === "undefined") return;
+  try {
+    const existing = getLocalProfile(uid);
+    localStorage.setItem(
+      `shopUserProfile_${uid}`,
+      JSON.stringify({ ...existing, ...data })
+    );
+  } catch {}
+}
 
 function toUser(fbUser: FirebaseUser): User {
   const parts = (fbUser.displayName ?? "").split(" ");
+  const local = getLocalProfile(fbUser.uid);
   return {
     id: fbUser.uid,
     uid: fbUser.uid,
     email: fbUser.email,
     displayName: fbUser.displayName,
     photoURL: fbUser.photoURL,
-    firstName: parts[0] ?? "",
-    lastName: parts.slice(1).join(" ") ?? "",
-    phone: "",
-    addresses: [],
+    firstName: local.firstName ?? parts[0] ?? "",
+    lastName: local.lastName ?? parts.slice(1).join(" ") ?? "",
+    phone: local.phone ?? "",
+    dateOfBirth: local.dateOfBirth ?? "",
+    gender: local.gender ?? "",
+    mainLocation: local.mainLocation ?? "",
+    profilePhoto: local.profilePhoto ?? fbUser.photoURL ?? "",
+    addresses: local.addresses ?? [],
     createdAt: fbUser.metadata.creationTime ?? new Date().toISOString(),
     isAdmin: !!ADMIN_EMAIL && fbUser.email === ADMIN_EMAIL,
   };
@@ -97,7 +143,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return unsubscribe;
   }, []);
 
-  const login = async (email: string, password: string): Promise<{ isAdmin: boolean }> => {
+  const login = async (
+    email: string,
+    password: string
+  ): Promise<{ isAdmin: boolean }> => {
     await signInWithEmailAndPassword(auth, email, password);
     return { isAdmin: !!ADMIN_EMAIL && email === ADMIN_EMAIL };
   };
@@ -115,8 +164,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     firstName: string,
     lastName: string
   ) => {
-    const { user: fbUser } = await createUserWithEmailAndPassword(auth, email, password);
-    await fbUpdateProfile(fbUser, { displayName: `${firstName} ${lastName}`.trim() });
+    const { user: fbUser } = await createUserWithEmailAndPassword(
+      auth,
+      email,
+      password
+    );
+    await fbUpdateProfile(fbUser, {
+      displayName: `${firstName} ${lastName}`.trim(),
+    });
   };
 
   const logout = async () => {
@@ -125,10 +180,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const updateProfile = async (updates: Partial<User>) => {
     if (!auth.currentUser) throw new Error("Not logged in");
-    if (updates.firstName !== undefined || updates.lastName !== undefined) {
+    // Sync name to Firebase Auth display name
+    if (
+      updates.firstName !== undefined ||
+      updates.lastName !== undefined
+    ) {
       const first = updates.firstName ?? user?.firstName ?? "";
       const last = updates.lastName ?? user?.lastName ?? "";
-      await fbUpdateProfile(auth.currentUser, { displayName: `${first} ${last}`.trim() });
+      await fbUpdateProfile(auth.currentUser, {
+        displayName: `${first} ${last}`.trim(),
+      });
+    }
+    // Persist extra profile fields to localStorage
+    const fieldsToSave: Record<string, any> = {};
+    LOCAL_FIELDS.forEach((field) => {
+      if ((updates as any)[field] !== undefined) {
+        fieldsToSave[field] = (updates as any)[field];
+      }
+    });
+    if (Object.keys(fieldsToSave).length > 0) {
+      saveLocalProfile(auth.currentUser.uid, fieldsToSave);
     }
     setUser((prev) => (prev ? { ...prev, ...updates } : prev));
   };
@@ -141,18 +212,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser((prev) => {
       if (!prev) return prev;
       const addresses = addressData.isDefault
-        ? [...prev.addresses.map((a) => ({ ...a, isDefault: false })), newAddress]
+        ? [
+            ...prev.addresses.map((a) => ({ ...a, isDefault: false })),
+            newAddress,
+          ]
         : [...prev.addresses, newAddress];
+      saveLocalProfile(prev.uid, { addresses });
       return { ...prev, addresses };
     });
   };
 
-  const updateAddress = async (id: string, updates: Partial<Omit<Address, "id">>) => {
+  const updateAddress = async (
+    id: string,
+    updates: Partial<Omit<Address, "id">>
+  ) => {
     setUser((prev) => {
       if (!prev) return prev;
       const addresses = prev.addresses.map((a) =>
         a.id === id ? { ...a, ...updates } : a
       );
+      saveLocalProfile(prev.uid, { addresses });
       return { ...prev, addresses };
     });
   };
@@ -160,14 +239,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const deleteAddress = async (id: string) => {
     setUser((prev) => {
       if (!prev) return prev;
-      return { ...prev, addresses: prev.addresses.filter((a) => a.id !== id) };
+      const addresses = prev.addresses.filter((a) => a.id !== id);
+      saveLocalProfile(prev.uid, { addresses });
+      return { ...prev, addresses };
     });
   };
 
   const setDefaultAddress = async (id: string) => {
     setUser((prev) => {
       if (!prev) return prev;
-      const addresses = prev.addresses.map((a) => ({ ...a, isDefault: a.id === id }));
+      const addresses = prev.addresses.map((a) => ({
+        ...a,
+        isDefault: a.id === id,
+      }));
+      saveLocalProfile(prev.uid, { addresses });
       return { ...prev, addresses };
     });
   };
