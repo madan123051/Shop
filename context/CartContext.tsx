@@ -5,11 +5,25 @@ import { Product } from "@/data/products";
 
 export interface CartItem extends Product {
   quantity: number;
+  customization?: {
+    width: number;
+    height: number;
+    unit: string;
+    area: number;
+    selectedOptions: {
+      groupId: string;
+      groupTitle: string;
+      optionId: string;
+      optionLabel: string;
+      price: number;
+    }[];
+    calculatedPrice: number;
+  };
 }
 
 interface CartContextType {
   cart: CartItem[];
-  addToCart: (product: Product) => void;
+  addToCart: (product: Product, customization?: CartItem["customization"]) => void;
   removeFromCart: (id: string) => void;
   updateQuantity: (id: string, quantity: number) => void;
   clearCart: () => void;
@@ -31,12 +45,18 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem("cart", JSON.stringify(cart));
   }, [cart]);
 
-  const addToCart = (product: Product) => {
+  const addToCart = (product: Product, customization?: CartItem["customization"]) => {
     setCart((prev) => {
-      const existing = prev.find((item) => item.id === product.id);
+      // For customizable products, we always add as a new item if customization differs
+      // but for simplicity, let's just use a unique ID for custom items or allow multiple entries
+      if (customization) {
+        return [...prev, { ...product, quantity: 1, customization, id: `${product.id}-${Date.now()}` }];
+      }
+
+      const existing = prev.find((item) => item.id === product.id && !item.customization);
       if (existing) {
         return prev.map((item) =>
-          item.id === product.id
+          item.id === product.id && !item.customization
             ? { ...item, quantity: item.quantity + 1 }
             : item
         );
@@ -59,7 +79,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
   const totalPrice = cart.reduce(
-    (sum, item) => sum + item.price * item.quantity,
+    (sum, item) => {
+      const price = item.customization ? item.customization.calculatedPrice : item.price;
+      return sum + price * item.quantity;
+    },
     0
   );
 

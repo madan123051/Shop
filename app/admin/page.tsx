@@ -288,6 +288,12 @@ export default function AdminDashboard() {
       likes: 0,
       shares: 0,
       comments: 0,
+      isCustomizable: false,
+      baseRate: 0,
+      unit: "ft",
+      minimumArea: 0,
+      installationCost: 0,
+      customOptions: [],
     });
   };
 
@@ -307,6 +313,8 @@ export default function AdminDashboard() {
     const payload = { 
       ...formData, 
       features,
+      price: formData.isCustomizable ? 0 : Number(formData.price),
+      baseRate: formData.isCustomizable ? Number(formData.baseRate) : 0,
       updatedAt: new Date().toISOString()
     };
 
@@ -645,9 +653,28 @@ export default function AdminDashboard() {
                       <td colSpan={7} className="px-5 py-3">
                         <p className="text-xs font-semibold text-gray-600 mb-2">Order Items:</p>
                         {o.items.map((item, i) => (
-                          <div key={i} className="flex justify-between text-xs py-1 border-b border-orange-100 last:border-0">
-                            <span className="text-gray-700">{item.name} × {item.quantity}</span>
-                            <span className="font-semibold">{fmt(item.price * item.quantity)}</span>
+                          <div key={i} className="py-2 border-b border-orange-100 last:border-0">
+                            <div className="flex justify-between text-xs mb-1">
+                              <span className="font-bold text-gray-700">{item.name} × {item.quantity}</span>
+                              <span className="font-bold text-[#1a3a6b]">
+                                {fmt((item.customization ? item.customization.calculatedPrice : item.price) * item.quantity)}
+                              </span>
+                            </div>
+                            {item.customization && (
+                              <div className="pl-3 border-l-2 border-orange-200 space-y-0.5">
+                                <p className="text-[10px] text-gray-500 font-bold uppercase">Specs:</p>
+                                <p className="text-[10px] text-gray-600">
+                                  {item.customization.width} x {item.customization.height} {item.customization.unit} ({item.customization.area.toFixed(2)} sq {item.customization.unit})
+                                </p>
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  {item.customization.selectedOptions.map((opt: any, idx: number) => (
+                                    <span key={idx} className="text-[9px] bg-orange-100/50 text-orange-700 px-1.5 py-0.5 rounded">
+                                      {opt.groupTitle}: {opt.optionLabel}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
                           </div>
                         ))}
                         <div className="flex justify-between pt-1 font-bold text-sm text-[#1a3a6b]">
@@ -765,15 +792,121 @@ export default function AdminDashboard() {
                     {MAIN_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">Price (₹) *</label>
-                  <input type="number" value={formData.price || 0} onChange={e => setFormData({ ...formData, price: parseFloat(e.target.value) })}
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-[#f97316]" />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">Original Price (₹)</label>
-                  <input type="number" value={formData.originalPrice || ""} onChange={e => setFormData({ ...formData, originalPrice: e.target.value ? parseFloat(e.target.value) : undefined })}
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-[#f97316]" />
+                <div className="col-span-2">
+                  <div className="flex items-center justify-between p-3 bg-orange-50 rounded-xl border border-orange-100 mb-2">
+                    <h4 className="text-xs font-bold text-[#f97316] flex items-center gap-2">
+                      <Settings className="w-4 h-4" /> Pricing & Customization
+                    </h4>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input type="checkbox" checked={formData.isCustomizable || false} onChange={e => setFormData({ ...formData, isCustomizable: e.target.checked })}
+                        className="w-4 h-4 border border-gray-300 rounded focus:outline-none accent-[#f97316]" />
+                      <span className="text-xs font-bold text-gray-700">Customizable Product</span>
+                    </label>
+                  </div>
+
+                  {formData.isCustomizable ? (
+                    <div className="space-y-4 p-4 bg-white rounded-xl border border-gray-100 shadow-inner">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Base Rate (per sq unit)</label>
+                          <input type="number" value={formData.baseRate || ""} onChange={e => setFormData({ ...formData, baseRate: e.target.value })}
+                            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-[#f97316]" />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Unit</label>
+                          <select value={formData.unit || "ft"} onChange={e => setFormData({ ...formData, unit: e.target.value })}
+                            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-[#f97316]">
+                            <option value="ft">Feet (ft)</option>
+                            <option value="inch">Inches (in)</option>
+                            <option value="cm">Centimeters (cm)</option>
+                          </select>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Min Area (sq unit)</label>
+                          <input type="number" value={formData.minimumArea || ""} onChange={e => setFormData({ ...formData, minimumArea: e.target.value })}
+                            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-[#f97316]" />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Install Cost (Fixed)</label>
+                          <input type="number" value={formData.installationCost || ""} onChange={e => setFormData({ ...formData, installationCost: e.target.value })}
+                            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-[#f97316]" />
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <label className="block text-[10px] font-bold text-gray-500 uppercase mb-2">Custom Option Groups</label>
+                        <button 
+                          onClick={() => {
+                            const newGroup = { id: `group-${Date.now()}`, title: "New Group", options: [{ id: `opt-${Date.now()}`, label: "Option 1", type: "fixed", value: 0 }] };
+                            setFormData({ ...formData, customOptions: [...(formData.customOptions || []), newGroup] });
+                          }}
+                          className="text-[10px] font-bold text-[#f97316] hover:underline"
+                        >
+                          + Add Option Group (e.g. Material, Color)
+                        </button>
+                        
+                        <div className="mt-2 space-y-2">
+                          {formData.customOptions?.map((group: any, gIdx: number) => (
+                            <div key={group.id} className="bg-gray-50 p-2 rounded-lg border border-gray-100">
+                              <div className="flex items-center gap-2 mb-2">
+                                <input type="text" value={group.title} onChange={e => {
+                                  const newGroups = [...formData.customOptions];
+                                  newGroups[gIdx].title = e.target.value;
+                                  setFormData({ ...formData, customOptions: newGroups });
+                                }} className="flex-1 font-bold text-[10px] border-none p-0 bg-transparent focus:ring-0" />
+                                <button onClick={() => setFormData({ ...formData, customOptions: formData.customOptions.filter((_: any, i: number) => i !== gIdx) })} className="text-gray-400 hover:text-red-500"><X className="w-3 h-3" /></button>
+                              </div>
+                              <div className="space-y-1">
+                                {group.options.map((opt: any, oIdx: number) => (
+                                  <div key={opt.id} className="flex items-center gap-2">
+                                    <input type="text" value={opt.label} onChange={e => {
+                                      const newGroups = [...formData.customOptions];
+                                      newGroups[gIdx].options[oIdx].label = e.target.value;
+                                      setFormData({ ...formData, customOptions: newGroups });
+                                    }} className="flex-1 text-[10px] border-none p-0 bg-transparent focus:ring-0" placeholder="Option Name" />
+                                    <select value={opt.type} onChange={e => {
+                                      const newGroups = [...formData.customOptions];
+                                      newGroups[gIdx].options[oIdx].type = e.target.value;
+                                      setFormData({ ...formData, customOptions: newGroups });
+                                    }} className="text-[10px] border-none p-0 bg-transparent focus:ring-0">
+                                      <option value="fixed">Fixed</option>
+                                      <option value="percentage">%</option>
+                                      <option value="area-based">/sq unit</option>
+                                    </select>
+                                    <input type="number" value={opt.value} onChange={e => {
+                                      const newGroups = [...formData.customOptions];
+                                      newGroups[gIdx].options[oIdx].value = Number(e.target.value);
+                                      setFormData({ ...formData, customOptions: newGroups });
+                                    }} className="w-10 text-[10px] border-none p-0 text-right bg-transparent focus:ring-0" />
+                                  </div>
+                                ))}
+                                <button onClick={() => {
+                                  const newGroups = [...formData.customOptions];
+                                  newGroups[gIdx].options.push({ id: `opt-${Date.now()}`, label: "New Option", type: "fixed", value: 0 });
+                                  setFormData({ ...formData, customOptions: newGroups });
+                                }} className="text-[9px] text-gray-400 hover:text-gray-600">+ Add Option</button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-1">Price (₹) *</label>
+                        <input type="number" value={formData.price || 0} onChange={e => setFormData({ ...formData, price: parseFloat(e.target.value) })}
+                          className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-[#f97316]" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-1">Original Price (₹)</label>
+                        <input type="number" value={formData.originalPrice || ""} onChange={e => setFormData({ ...formData, originalPrice: e.target.value ? parseFloat(e.target.value) : undefined })}
+                          className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-[#f97316]" />
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1">Rating</label>

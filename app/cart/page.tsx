@@ -48,6 +48,23 @@ export default function CartPage() {
                   {item.name}
                 </Link>
                 <p className="text-indigo-600 text-xs font-medium mt-0.5">{item.category}</p>
+                
+                {item.customization && (
+                  <div className="mt-2 space-y-1">
+                    <p className="text-[10px] text-gray-500 font-bold uppercase">Custom Specs:</p>
+                    <p className="text-xs text-gray-600">
+                      {item.customization.width} x {item.customization.height} {item.customization.unit} ({item.customization.area.toFixed(2)} sq {item.customization.unit})
+                    </p>
+                    <div className="flex flex-wrap gap-1">
+                      {item.customization.selectedOptions.map((opt, i) => (
+                        <span key={i} className="text-[9px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-md">
+                          {opt.groupTitle}: {opt.optionLabel}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex items-center justify-between mt-3">
                   <div className="flex items-center gap-2 bg-gray-100 rounded-xl px-1.5 py-1">
                     <button
@@ -67,7 +84,9 @@ export default function CartPage() {
                     </button>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="font-bold text-gray-900">₹{(item.price * item.quantity).toLocaleString('en-IN')}</span>
+                    <span className="font-bold text-gray-900">
+                      ₹{((item.customization ? item.customization.calculatedPrice : item.price) * item.quantity).toLocaleString('en-IN')}
+                    </span>
                     <button
                       onClick={() => removeFromCart(item.id)}
                       className="w-8 h-8 flex items-center justify-center rounded-xl text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"

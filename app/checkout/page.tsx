@@ -13,7 +13,23 @@ type Step = "info" | "shipping" | "payment" | "success";
 export default function CheckoutPage() {
   const router = useRouter();
   const { cart, totalPrice, clearCart } = useCart();
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push("/login?redirect=/checkout");
+    }
+  }, [user, authLoading, router]);
+
+  if (authLoading) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <Loader className="w-10 h-10 animate-spin text-[#f97316]" />
+      </div>
+    );
+  }
+
+  if (!user) return null;
   const { createOrder } = useOrder();
   const [step, setStep] = useState<Step>("info");
   const [orderId, setOrderId] = useState<string>("");
