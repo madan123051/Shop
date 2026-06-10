@@ -449,7 +449,9 @@ export default function AdminDashboard() {
     <aside className="w-60 shrink-0 bg-[#1a3a6b] text-white flex flex-col h-screen sticky top-0">
       <div className="px-5 py-5 border-b border-white/10">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-[#f97316] rounded-lg flex items-center justify-center font-extrabold text-white text-base">NT</div>
+          <div className="w-9 h-9 bg-[#f97316] rounded-lg flex items-center justify-center font-extrabold text-white text-base">
+            <ShoppingCart className="w-5 h-5" />
+          </div>
           <div>
             <p className="font-bold text-sm leading-tight">NewTech Admin</p>
             <p className="text-xs text-white/50 leading-tight">Business Panel</p>
@@ -469,7 +471,11 @@ export default function AdminDashboard() {
       </nav>
       <div className="px-4 py-4 border-t border-white/10">
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-8 h-8 bg-[#f97316] rounded-full flex items-center justify-center text-sm font-bold">{adminInitial}</div>
+          <div className="w-8 h-8 bg-[#f97316] rounded-full flex items-center justify-center text-sm font-bold overflow-hidden">
+            {user?.photoURL ? (
+              <img src={user.photoURL} alt="Admin" className="w-full h-full object-cover" />
+            ) : adminInitial}
+          </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold truncate">{user?.displayName ?? "Admin"}</p>
             <p className="text-xs text-white/50 truncate">{user?.email}</p>
