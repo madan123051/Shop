@@ -15,6 +15,7 @@ export interface Product {
   likes?: number;
   shares?: number;
   comments?: number;
+  views?: number;
   description: string;
   features: string[];
   badge?: "Sale" | "New" | "Hot" | "Best Seller";
