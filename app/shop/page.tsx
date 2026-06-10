@@ -1,15 +1,15 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { products, categories } from "@/data/products";
+import { useProducts } from "@/context/ProductsContext";
 import ProductCard from "@/components/ProductCard";
 import { Search, SlidersHorizontal, X } from "lucide-react";
-import { Suspense } from "react";
 
 function ShopContent() {
   const searchParams = useSearchParams();
   const initialCategory = searchParams.get("category") || "All";
+  const { products, categories } = useProducts();
 
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState(initialCategory);
@@ -31,7 +31,7 @@ function ShopContent() {
     if (sortBy === "price-desc") result.sort((a, b) => b.price - a.price);
     if (sortBy === "rating") result.sort((a, b) => b.rating - a.rating);
     return result;
-  }, [search, selectedCategory, sortBy]);
+  }, [products, search, selectedCategory, sortBy]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
@@ -115,7 +115,7 @@ function ShopContent() {
           </h3>
           <p className="text-gray-400 text-sm">
             {products.length === 0
-              ? "Firebase se products connect hone ke baad yahan dikh jayenge."
+              ? "Admin se products add hone ke baad yahan dikh jayenge."
               : "Try a different search or category."}
           </p>
           {search && (

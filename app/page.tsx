@@ -1,7 +1,9 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight, ShieldCheck, Star, Clock, Headphones } from "lucide-react";
-import { products, categories } from "@/data/products";
+import { useProducts } from "@/context/ProductsContext";
 import ProductCard from "@/components/ProductCard";
 
 const stats = [
@@ -50,6 +52,7 @@ const categoryCards = [
 ];
 
 export default function HomePage() {
+  const { products, categories } = useProducts();
   const featured = products.slice(0, 4);
 
   return (

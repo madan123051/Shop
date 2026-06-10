@@ -3,21 +3,22 @@ import "./globals.css";
 import { CartProvider } from "@/context/CartContext";
 import { AuthProvider } from "@/context/AuthContext";
 import { OrderProvider } from "@/context/OrderContext";
+import { ProductsProvider } from "@/context/ProductsContext";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import ChatBot from "@/components/ChatBot";
 
 export const metadata: Metadata = {
   title: "NewTech Home Solutions — Complete Home Protection & Interior Solutions",
-  description:
-    "Premium Blinds, Pleated Mesh, Honeycomb Partitions, PVC Partition, Security Mesh and more. Serving Delhi NCR.",
+  description: "Premium Blinds, Pleated Mesh, Honeycomb Partitions, PVC Partition, Security Mesh and more. Serving Delhi NCR.",
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "any" },
       { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
       { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
     ],
-    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+    apple: [
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
   },
   manifest: "/site.webmanifest",
   openGraph: {
@@ -54,12 +55,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-screen flex flex-col bg-gray-50">
         <AuthProvider>
           <OrderProvider>
-            <CartProvider>
-              <Navbar />
-              <main className="flex-1">{children}</main>
-              <Footer />
-              <ChatBot />
-            </CartProvider>
+            <ProductsProvider>
+              <CartProvider>
+                <Navbar />
+                <main className="flex-1">{children}</main>
+                <Footer />
+              </CartProvider>
+            </ProductsProvider>
           </OrderProvider>
         </AuthProvider>
       </body>

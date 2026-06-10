@@ -3,61 +3,52 @@
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { products } from "@/data/products";
+import { useOrder, Order as ContextOrder } from "@/context/OrderContext";
+import { useProducts } from "@/context/ProductsContext";
 import {
   LayoutDashboard, ShoppingCart, Package, Users, Settings,
   DollarSign, TrendingUp, Clock, CheckCircle, Truck, XCircle,
   AlertCircle, Search, LogOut, Menu, BarChart2, ArrowUpRight,
-  Star, Bell, Edit2, Trash2, Plus, Eye,
+  Star, Bell, Edit2, Trash2, Plus, Eye, X,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type OrderStatus = "Pending" | "Processing" | "Shipped" | "Delivered" | "Cancelled";
-
-interface OrderItem { name: string; qty: number; price: number; }
-interface Order {
-  id: string; customer: string; email: string; items: OrderItem[];
-  total: number; status: OrderStatus; date: string; address: string;
-}
 interface Customer {
-  id: string; name: string; email: string; orders: number;
-  spent: number; joined: string; location: string;
+  id: string;
+  name: string;
+  email: string;
+  orders: number;
+  spent: number;
+  joined: string;
+  location: string;
 }
+
 type Tab = "overview" | "orders" | "products" | "customers" | "settings";
+type ContextOrderStatus = "pending" | "confirmed" | "shipped" | "delivered" | "cancelled";
+type AdminOrderStatus = "Pending" | "Processing" | "Shipped" | "Delivered" | "Cancelled";
 
-// ─── Mock Data ────────────────────────────────────────────────────────────────
+// ─── Display Mappings ─────────────────────────────────────────────────────────
 
-const INIT_ORDERS: Order[] = [
-  { id: "ORD-001", customer: "Rahul Sharma", email: "rahul@example.com", items: [{ name: "Roller Blinds", qty: 2, price: 1499 }, { name: "Zebra Blinds", qty: 1, price: 1799 }], total: 4797, status: "Delivered", date: "2026-06-01", address: "Sector 62, Noida" },
-  { id: "ORD-002", customer: "Priya Singh", email: "priya@example.com", items: [{ name: "SS 304 Pleated Mesh", qty: 3, price: 1599 }], total: 4797, status: "Shipped", date: "2026-06-03", address: "Dwarka, Delhi" },
-  { id: "ORD-003", customer: "Amit Kumar", email: "amit@example.com", items: [{ name: "Honeycomb Blackout", qty: 1, price: 2799 }, { name: "Wooden Blinds", qty: 2, price: 2499 }], total: 7797, status: "Processing", date: "2026-06-05", address: "Gurgaon, Haryana" },
-  { id: "ORD-004", customer: "Sneha Patel", email: "sneha@example.com", items: [{ name: "PVC Partition", qty: 1, price: 3499 }], total: 3499, status: "Pending", date: "2026-06-07", address: "Faridabad, Haryana" },
-  { id: "ORD-005", customer: "Vikram Joshi", email: "vikram@example.com", items: [{ name: "Polyster Pleated Mesh", qty: 5, price: 999 }], total: 4995, status: "Delivered", date: "2026-06-08", address: "Lajpat Nagar, Delhi" },
-  { id: "ORD-006", customer: "Deepa Nair", email: "deepa@example.com", items: [{ name: "Zebra Blinds", qty: 2, price: 1799 }], total: 3598, status: "Cancelled", date: "2026-06-08", address: "Rohini, Delhi" },
-  { id: "ORD-007", customer: "Manish Gupta", email: "manish@example.com", items: [{ name: "Printed Blinds", qty: 3, price: 1699 }], total: 5097, status: "Processing", date: "2026-06-09", address: "Vasundhara, Ghaziabad" },
-  { id: "ORD-008", customer: "Anita Verma", email: "anita@example.com", items: [{ name: "Honeycomb Day-Night", qty: 2, price: 3299 }], total: 6598, status: "Shipped", date: "2026-06-09", address: "Indirapuram, Ghaziabad" },
-];
+const STATUS_DISPLAY: Record<ContextOrderStatus, AdminOrderStatus> = {
+  pending: "Pending",
+  confirmed: "Processing",
+  shipped: "Shipped",
+  delivered: "Delivered",
+  cancelled: "Cancelled",
+};
 
-const MOCK_CUSTOMERS: Customer[] = [
-  { id: "C001", name: "Rahul Sharma", email: "rahul@example.com", orders: 3, spent: 12450, joined: "2025-12-01", location: "Noida" },
-  { id: "C002", name: "Priya Singh", email: "priya@example.com", orders: 2, spent: 8200, joined: "2026-01-15", location: "Delhi" },
-  { id: "C003", name: "Amit Kumar", email: "amit@example.com", orders: 5, spent: 24800, joined: "2025-10-20", location: "Gurgaon" },
-  { id: "C004", name: "Sneha Patel", email: "sneha@example.com", orders: 1, spent: 3499, joined: "2026-06-07", location: "Faridabad" },
-  { id: "C005", name: "Vikram Joshi", email: "vikram@example.com", orders: 4, spent: 18750, joined: "2025-11-05", location: "Delhi" },
-  { id: "C006", name: "Deepa Nair", email: "deepa@example.com", orders: 2, spent: 5600, joined: "2026-02-28", location: "Delhi" },
-  { id: "C007", name: "Manish Gupta", email: "manish@example.com", orders: 3, spent: 14200, joined: "2025-09-10", location: "Ghaziabad" },
-  { id: "C008", name: "Anita Verma", email: "anita@example.com", orders: 6, spent: 31000, joined: "2025-08-15", location: "Ghaziabad" },
-];
+const DISPLAY_TO_STATUS: Record<AdminOrderStatus, ContextOrderStatus> = {
+  Pending: "pending",
+  Processing: "confirmed",
+  Shipped: "shipped",
+  Delivered: "delivered",
+  Cancelled: "cancelled",
+};
 
-const WEEKLY = [
-  { day: "Mon", amount: 12400 }, { day: "Tue", amount: 8200 }, { day: "Wed", amount: 19800 },
-  { day: "Thu", amount: 15600 }, { day: "Fri", amount: 22100 }, { day: "Sat", amount: 31500 }, { day: "Sun", amount: 27800 },
-];
+const ALL_STATUSES: AdminOrderStatus[] = ["Pending", "Processing", "Shipped", "Delivered", "Cancelled"];
 
-const ALL_STATUSES: OrderStatus[] = ["Pending", "Processing", "Shipped", "Delivered", "Cancelled"];
-
-const STATUS_COLOR: Record<OrderStatus, string> = {
+const STATUS_COLOR: Record<AdminOrderStatus, string> = {
   Pending: "bg-yellow-100 text-yellow-800 border-yellow-200",
   Processing: "bg-blue-100 text-blue-800 border-blue-200",
   Shipped: "bg-purple-100 text-purple-800 border-purple-200",
@@ -65,7 +56,7 @@ const STATUS_COLOR: Record<OrderStatus, string> = {
   Cancelled: "bg-red-100 text-red-800 border-red-200",
 };
 
-const STATUS_ICON: Record<OrderStatus, React.ReactNode> = {
+const STATUS_ICON: Record<AdminOrderStatus, React.ReactNode> = {
   Pending: <Clock className="w-3.5 h-3.5" />,
   Processing: <AlertCircle className="w-3.5 h-3.5" />,
   Shipped: <Truck className="w-3.5 h-3.5" />,
@@ -75,7 +66,7 @@ const STATUS_ICON: Record<OrderStatus, React.ReactNode> = {
 
 function fmt(n: number) { return "₹" + n.toLocaleString("en-IN"); }
 
-function StatusBadge({ status }: { status: OrderStatus }) {
+function StatusBadge({ status }: { status: AdminOrderStatus }) {
   return (
     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold border ${STATUS_COLOR[status]}`}>
       {STATUS_ICON[status]}{status}
@@ -108,42 +99,129 @@ function StatCard({ label, value, sub, icon, color, trend }: {
 export default function AdminDashboard() {
   const { user, logout } = useAuth();
   const router = useRouter();
+  const { orders, updateOrderStatus } = useOrder();
+  const { products, addProduct, updateProduct, deleteProduct, categories } = useProducts();
 
   const [activeTab, setActiveTab] = useState<Tab>("overview");
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [orders, setOrders] = useState<Order[]>(INIT_ORDERS);
   const [orderSearch, setOrderSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("All");
+  const [statusFilter, setStatusFilter] = useState<"All" | AdminOrderStatus>("All");
   const [customerSearch, setCustomerSearch] = useState("");
   const [productSearch, setProductSearch] = useState("");
   const [stockFilter, setStockFilter] = useState("All");
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
+  
+  // Product Modal State
+  const [productModal, setProductModal] = useState<{ open: boolean; mode: "add" | "edit"; product?: any }>({ open: false, mode: "add" });
+  const [formData, setFormData] = useState<any>({});
 
-  const totalRevenue = orders.filter(o => o.status !== "Cancelled").reduce((s, o) => s + o.total, 0);
-  const pendingCount = orders.filter(o => o.status === "Pending" || o.status === "Processing").length;
-  const maxWeekly = Math.max(...WEEKLY.map(d => d.amount));
+  // Compute derived data from real orders
+  const totalRevenue = orders.filter(o => o.status !== "cancelled").reduce((s, o) => s + o.total, 0);
+  const pendingCount = orders.filter(o => o.status === "pending" || o.status === "confirmed").length;
+
+  // Derive customers from orders
+  const customers = useMemo(() => {
+    const map = new Map<string, Customer>();
+    orders.forEach(o => {
+      const name = `${o.shippingAddress.firstName} ${o.shippingAddress.lastName}`.trim();
+      const existing = map.get(o.email);
+      if (existing) {
+        existing.orders++;
+        existing.spent += o.total;
+      } else {
+        map.set(o.email, {
+          id: o.userId,
+          name: name || o.email,
+          email: o.email,
+          orders: 1,
+          spent: o.total,
+          joined: o.createdAt.split('T')[0],
+          location: o.shippingAddress.city || '-',
+        });
+      }
+    });
+    return Array.from(map.values());
+  }, [orders]);
+
+  // Weekly chart from real order data
+  const WEEKLY = useMemo(() => {
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const now = new Date();
+    return Array.from({ length: 7 }).map((_, i) => {
+      const d = new Date(now);
+      d.setDate(d.getDate() - (6 - i));
+      const dayLabel = days[d.getDay()];
+      const dateStr = d.toISOString().split('T')[0];
+      const amount = orders
+        .filter(o => o.createdAt.startsWith(dateStr) && o.status !== 'cancelled')
+        .reduce((s, o) => s + o.total, 0);
+      return { day: dayLabel, amount };
+    });
+  }, [orders]);
+
+  const maxWeekly = Math.max(...WEEKLY.map(d => d.amount), 1);
 
   const filteredOrders = useMemo(() => orders.filter(o => {
     const q = orderSearch.toLowerCase();
-    return (o.id.toLowerCase().includes(q) || o.customer.toLowerCase().includes(q)) &&
-      (statusFilter === "All" || o.status === statusFilter);
+    const displayStatus = STATUS_DISPLAY[o.status];
+    const name = `${o.shippingAddress.firstName} ${o.shippingAddress.lastName}`.trim();
+    return (o.id.toLowerCase().includes(q) || name.toLowerCase().includes(q)) &&
+      (statusFilter === "All" || displayStatus === statusFilter);
   }), [orders, orderSearch, statusFilter]);
 
-  const filteredCustomers = useMemo(() => MOCK_CUSTOMERS.filter(c => {
+  const filteredCustomers = useMemo(() => customers.filter(c => {
     const q = customerSearch.toLowerCase();
     return c.name.toLowerCase().includes(q) || c.email.toLowerCase().includes(q);
-  }), [customerSearch]);
+  }), [customers, customerSearch]);
 
   const filteredProducts = useMemo(() => products.filter(p => {
     const q = productSearch.toLowerCase();
     return (p.name.toLowerCase().includes(q) || p.category.toLowerCase().includes(q)) &&
       (stockFilter === "All" || (stockFilter === "In Stock" ? p.inStock : !p.inStock));
-  }), [productSearch, stockFilter]);
-
-  const updateStatus = (id: string, status: OrderStatus) =>
-    setOrders(prev => prev.map(o => o.id === id ? { ...o, status } : o));
+  }), [products, productSearch, stockFilter]);
 
   const handleLogout = async () => { await logout(); router.push("/"); };
+
+  // Product Modal Handlers
+  const openAddModal = () => {
+    setProductModal({ open: true, mode: "add" });
+    setFormData({
+      name: "",
+      price: 0,
+      originalPrice: undefined,
+      category: "",
+      image: "",
+      rating: 4.5,
+      reviews: 0,
+      description: "",
+      features: [],
+      badge: undefined,
+      inStock: true,
+    });
+  };
+
+  const openEditModal = (p: any) => {
+    setProductModal({ open: true, mode: "edit", product: p });
+    setFormData(p);
+  };
+
+  const handleSaveProduct = () => {
+    if (!formData.name || !formData.category || !formData.price) {
+      alert("Please fill in required fields");
+      return;
+    }
+    
+    const features = Array.isArray(formData.features) ? formData.features : (formData.features || "").split('\n').filter((f: string) => f.trim());
+    const payload = { ...formData, features };
+
+    if (productModal.mode === "add") {
+      addProduct(payload);
+    } else if (productModal.mode === "edit") {
+      updateProduct(formData.id, payload);
+    }
+
+    setProductModal({ open: false, mode: "add" });
+  };
 
   const adminInitial = (user?.displayName ?? user?.email ?? "A").charAt(0).toUpperCase();
 
@@ -200,7 +278,7 @@ export default function AdminDashboard() {
         <StatCard label="Total Revenue" value={fmt(totalRevenue)} sub="Delivered orders" icon={<DollarSign className="w-5 h-5 text-green-600" />} color="bg-green-50" trend={12} />
         <StatCard label="Total Orders" value={String(orders.length)} sub={`${pendingCount} need action`} icon={<ShoppingCart className="w-5 h-5 text-blue-600" />} color="bg-blue-50" trend={8} />
         <StatCard label="Products" value={String(products.length)} sub={`${products.filter(p => p.inStock).length} in stock`} icon={<Package className="w-5 h-5 text-purple-600" />} color="bg-purple-50" />
-        <StatCard label="Customers" value={String(MOCK_CUSTOMERS.length)} sub={`${fmt(MOCK_CUSTOMERS.reduce((s, c) => s + c.spent, 0))} lifetime`} icon={<Users className="w-5 h-5 text-orange-600" />} color="bg-orange-50" trend={5} />
+        <StatCard label="Customers" value={String(customers.length)} sub={`${fmt(customers.reduce((s, c) => s + c.spent, 0))} lifetime`} icon={<Users className="w-5 h-5 text-orange-600" />} color="bg-orange-50" trend={5} />
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Weekly chart */}
@@ -229,8 +307,9 @@ export default function AdminDashboard() {
           <p className="text-xs text-gray-400 mb-4">Current breakdown</p>
           <div className="space-y-3">
             {ALL_STATUSES.map(s => {
-              const count = orders.filter(o => o.status === s).length;
-              const pct = Math.round((count / orders.length) * 100);
+              const ctx = DISPLAY_TO_STATUS[s];
+              const count = orders.filter(o => o.status === ctx).length;
+              const pct = Math.round((count / orders.length) * 100) || 0;
               return (
                 <div key={s}>
                   <div className="flex justify-between text-sm mb-1">
@@ -261,10 +340,10 @@ export default function AdminDashboard() {
               {orders.slice(0, 5).map(o => (
                 <tr key={o.id} className="hover:bg-gray-50/50 transition-colors">
                   <td className="px-5 py-3 font-mono font-semibold text-[#1a3a6b]">{o.id}</td>
-                  <td className="px-5 py-3"><p className="font-medium text-gray-800">{o.customer}</p><p className="text-gray-400 text-xs">{o.email}</p></td>
+                  <td className="px-5 py-3"><p className="font-medium text-gray-800">{o.shippingAddress.firstName} {o.shippingAddress.lastName}</p><p className="text-gray-400 text-xs">{o.email}</p></td>
                   <td className="px-5 py-3 font-bold text-gray-900">{fmt(o.total)}</td>
-                  <td className="px-5 py-3"><StatusBadge status={o.status} /></td>
-                  <td className="px-5 py-3 text-gray-500">{o.date}</td>
+                  <td className="px-5 py-3"><StatusBadge status={STATUS_DISPLAY[o.status]} /></td>
+                  <td className="px-5 py-3 text-gray-500">{o.createdAt.split('T')[0]}</td>
                 </tr>
               ))}
             </tbody>
@@ -312,7 +391,7 @@ export default function AdminDashboard() {
             className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-[#f97316] focus:ring-2 focus:ring-[#f97316]/20" />
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          {["All", ...ALL_STATUSES].map(s => (
+          {(["All"] as const).concat(ALL_STATUSES).map(s => (
             <button key={s} onClick={() => setStatusFilter(s)}
               className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${statusFilter === s ? "bg-[#1a3a6b] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
               {s}
@@ -332,13 +411,13 @@ export default function AdminDashboard() {
                 <>
                   <tr key={o.id} className="hover:bg-gray-50/50 transition-colors cursor-pointer" onClick={() => setExpandedOrder(expandedOrder === o.id ? null : o.id)}>
                     <td className="px-5 py-3 font-mono font-semibold text-[#1a3a6b]">{o.id}</td>
-                    <td className="px-5 py-3"><p className="font-medium text-gray-800">{o.customer}</p><p className="text-gray-400 text-xs">{o.address}</p></td>
+                    <td className="px-5 py-3"><p className="font-medium text-gray-800">{o.shippingAddress.firstName} {o.shippingAddress.lastName}</p><p className="text-gray-400 text-xs">{o.shippingAddress.address}</p></td>
                     <td className="px-5 py-3 text-gray-500">{o.items.length} item{o.items.length > 1 ? "s" : ""}</td>
                     <td className="px-5 py-3 font-bold text-gray-900">{fmt(o.total)}</td>
-                    <td className="px-5 py-3"><StatusBadge status={o.status} /></td>
-                    <td className="px-5 py-3 text-gray-500">{o.date}</td>
+                    <td className="px-5 py-3"><StatusBadge status={STATUS_DISPLAY[o.status]} /></td>
+                    <td className="px-5 py-3 text-gray-500">{o.createdAt.split('T')[0]}</td>
                     <td className="px-5 py-3">
-                      <select value={o.status} onClick={e => e.stopPropagation()} onChange={e => updateStatus(o.id, e.target.value as OrderStatus)}
+                      <select value={STATUS_DISPLAY[o.status]} onClick={e => e.stopPropagation()} onChange={e => updateOrderStatus(o.id, DISPLAY_TO_STATUS[e.target.value as AdminOrderStatus])}
                         className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:border-[#f97316] bg-white text-gray-700">
                         {ALL_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
                       </select>
@@ -350,8 +429,8 @@ export default function AdminDashboard() {
                         <p className="text-xs font-semibold text-gray-600 mb-2">Order Items:</p>
                         {o.items.map((item, i) => (
                           <div key={i} className="flex justify-between text-xs py-1 border-b border-orange-100 last:border-0">
-                            <span className="text-gray-700">{item.name} × {item.qty}</span>
-                            <span className="font-semibold">{fmt(item.price * item.qty)}</span>
+                            <span className="text-gray-700">{item.name} × {item.quantity}</span>
+                            <span className="font-semibold">{fmt(item.price * item.quantity)}</span>
                           </div>
                         ))}
                         <div className="flex justify-between pt-1 font-bold text-sm text-[#1a3a6b]">
@@ -383,14 +462,14 @@ export default function AdminDashboard() {
             <input type="text" placeholder="Search products…" value={productSearch} onChange={e => setProductSearch(e.target.value)}
               className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-[#f97316] focus:ring-2 focus:ring-[#f97316]/20" />
           </div>
-          {["All", "In Stock", "Out of Stock"].map(f => (
+          {[("All" as const), "In Stock", "Out of Stock"].map(f => (
             <button key={f} onClick={() => setStockFilter(f)}
               className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${stockFilter === f ? "bg-[#1a3a6b] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
               {f}
             </button>
           ))}
         </div>
-        <button className="flex items-center gap-2 px-4 py-2 bg-[#f97316] hover:bg-[#ea580c] text-white text-sm font-semibold rounded-xl transition-colors shadow-lg shadow-orange-200">
+        <button onClick={openAddModal} className="flex items-center gap-2 px-4 py-2 bg-[#f97316] hover:bg-[#ea580c] text-white text-sm font-semibold rounded-xl transition-colors shadow-lg shadow-orange-200">
           <Plus className="w-4 h-4" />Add Product
         </button>
       </div>
@@ -401,8 +480,8 @@ export default function AdminDashboard() {
               <Package className="w-12 h-12 text-[#1a3a6b]/20" />
               {p.badge && <span className="absolute top-2 left-2 bg-[#f97316] text-white text-xs font-bold px-2 py-0.5 rounded-full">{p.badge}</span>}
               <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button className="w-7 h-7 bg-white rounded-lg shadow flex items-center justify-center hover:bg-[#1a3a6b] hover:text-white transition-colors"><Edit2 className="w-3.5 h-3.5" /></button>
-                <button className="w-7 h-7 bg-white rounded-lg shadow flex items-center justify-center hover:bg-red-500 hover:text-white transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
+                <button onClick={() => openEditModal(p)} className="w-7 h-7 bg-white rounded-lg shadow flex items-center justify-center hover:bg-[#1a3a6b] hover:text-white transition-colors"><Edit2 className="w-3.5 h-3.5" /></button>
+                <button onClick={() => deleteProduct(p.id)} className="w-7 h-7 bg-white rounded-lg shadow flex items-center justify-center hover:bg-red-500 hover:text-white transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
               </div>
             </div>
             <div className="p-4">
@@ -427,6 +506,93 @@ export default function AdminDashboard() {
         ))}
       </div>
       <p className="text-xs text-gray-400 text-center">Showing {filteredProducts.length} of {products.length} products</p>
+
+      {/* Product Modal */}
+      {productModal.open && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between">
+              <h2 className="text-xl font-bold text-gray-900">{productModal.mode === "add" ? "Add Product" : "Edit Product"}</h2>
+              <button onClick={() => setProductModal({ open: false, mode: "add" })} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Name *</label>
+                  <input type="text" value={formData.name || ""} onChange={e => setFormData({ ...formData, name: e.target.value })}
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-[#f97316]" />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Category *</label>
+                  <input type="text" value={formData.category || ""} onChange={e => setFormData({ ...formData, category: e.target.value })}
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-[#f97316]" />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Price (₹) *</label>
+                  <input type="number" value={formData.price || 0} onChange={e => setFormData({ ...formData, price: parseFloat(e.target.value) })}
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-[#f97316]" />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Original Price (₹)</label>
+                  <input type="number" value={formData.originalPrice || ""} onChange={e => setFormData({ ...formData, originalPrice: e.target.value ? parseFloat(e.target.value) : undefined })}
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-[#f97316]" />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Rating</label>
+                  <input type="number" step="0.1" value={formData.rating || 4.5} onChange={e => setFormData({ ...formData, rating: parseFloat(e.target.value) })}
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-[#f97316]" />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Reviews</label>
+                  <input type="number" value={formData.reviews || 0} onChange={e => setFormData({ ...formData, reviews: parseInt(e.target.value) })}
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-[#f97316]" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Image URL</label>
+                <input type="text" value={formData.image || ""} onChange={e => setFormData({ ...formData, image: e.target.value })}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-[#f97316]" />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Description</label>
+                <textarea value={formData.description || ""} onChange={e => setFormData({ ...formData, description: e.target.value })}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-[#f97316]" rows={3} />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Features (one per line)</label>
+                <textarea value={(Array.isArray(formData.features) ? formData.features : formData.features || "").split('\n').join('\n') || ""} onChange={e => setFormData({ ...formData, features: e.target.value.split('\n').filter(f => f.trim()) })}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-[#f97316]" rows={3} />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Badge</label>
+                  <select value={formData.badge || ""} onChange={e => setFormData({ ...formData, badge: e.target.value || undefined })}
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-[#f97316]">
+                    <option value="">None</option>
+                    <option value="Sale">Sale</option>
+                    <option value="New">New</option>
+                    <option value="Hot">Hot</option>
+                    <option value="Best Seller">Best Seller</option>
+                  </select>
+                </div>
+                <div className="flex items-end">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={formData.inStock ?? true} onChange={e => setFormData({ ...formData, inStock: e.target.checked })}
+                      className="w-4 h-4 border border-gray-300 rounded focus:outline-none accent-[#f97316]" />
+                    <span className="text-sm font-semibold text-gray-700">In Stock</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+            <div className="border-t border-gray-100 px-6 py-4 flex gap-3 justify-end">
+              <button onClick={() => setProductModal({ open: false, mode: "add" })} className="px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">Cancel</button>
+              <button onClick={handleSaveProduct} className="px-4 py-2 text-sm font-semibold text-white bg-[#f97316] hover:bg-[#ea580c] rounded-lg transition-colors">Save Product</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 
@@ -445,7 +611,7 @@ export default function AdminDashboard() {
           <table className="w-full text-sm">
             <thead><tr className="bg-gray-50 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
               <th className="px-5 py-3">Customer</th><th className="px-5 py-3">Location</th><th className="px-5 py-3">Orders</th>
-              <th className="px-5 py-3">Total Spent</th><th className="px-5 py-3">Joined</th><th className="px-5 py-3">Actions</th>
+              <th className="px-5 py-3">Total Spent</th><th className="px-5 py-3">Joined</th>
             </tr></thead>
             <tbody className="divide-y divide-gray-50">
               {filteredCustomers.map(c => (
@@ -460,11 +626,6 @@ export default function AdminDashboard() {
                   <td className="px-5 py-3"><span className="inline-flex items-center justify-center w-7 h-7 bg-blue-50 text-blue-700 rounded-full font-bold text-xs">{c.orders}</span></td>
                   <td className="px-5 py-3 font-bold text-gray-900">{fmt(c.spent)}</td>
                   <td className="px-5 py-3 text-gray-500">{c.joined}</td>
-                  <td className="px-5 py-3">
-                    <button className="flex items-center gap-1 text-xs text-[#1a3a6b] hover:text-[#f97316] font-semibold transition-colors">
-                      <Eye className="w-3.5 h-3.5" />View
-                    </button>
-                  </td>
                 </tr>
               ))}
             </tbody>
@@ -489,31 +650,6 @@ export default function AdminDashboard() {
           ))}
         </div>
         <button className="mt-4 px-5 py-2.5 bg-[#1a3a6b] hover:bg-[#15306b] text-white text-sm font-bold rounded-xl transition-colors">Save Changes</button>
-      </div>
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-        <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><Users className="w-5 h-5 text-[#1a3a6b]" />Admin Account</h3>
-        <div className="flex items-center gap-4 p-4 bg-[#1a3a6b]/5 rounded-xl">
-          <div className="w-12 h-12 bg-[#f97316] rounded-full flex items-center justify-center text-white font-bold text-lg">{adminInitial}</div>
-          <div>
-            <p className="font-bold text-gray-800">{user?.displayName ?? "Admin"}</p>
-            <p className="text-sm text-gray-500">{user?.email}</p>
-            <span className="inline-block mt-1 px-2 py-0.5 bg-[#f97316] text-white text-xs font-bold rounded-full">Admin</span>
-          </div>
-        </div>
-        <p className="mt-4 text-xs text-gray-400">
-          Admin access is granted to the email set in <code className="bg-gray-100 px-1 py-0.5 rounded text-gray-600">NEXT_PUBLIC_ADMIN_EMAIL</code>.
-        </p>
-      </div>
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-        <h3 className="font-bold text-gray-800 mb-3 flex items-center gap-2"><TrendingUp className="w-5 h-5 text-[#1a3a6b]" />Firebase Status</h3>
-        {[{ label: "Authentication", status: "Connected" }, { label: "Firestore Database", status: "Ready" }, { label: "Google Sign-in", status: "Enabled" }].map(item => (
-          <div key={item.label} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
-            <span className="text-sm text-gray-700">{item.label}</span>
-            <span className="flex items-center gap-1.5 text-xs font-semibold text-green-600">
-              <span className="w-1.5 h-1.5 bg-green-500 rounded-full" />{item.status}
-            </span>
-          </div>
-        ))}
       </div>
     </div>
   );
