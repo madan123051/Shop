@@ -22,6 +22,7 @@ import {
   Globe,
   Package,
   ChevronRight,
+  ChevronDown,
   ShoppingBag,
   Clock,
   CheckCircle,
@@ -84,6 +85,7 @@ export default function ProfilePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [activeTab, setActiveTab] = useState<Tab>("info");
+  const [isInfoCollapsed, setIsInfoCollapsed] = useState(false);
   const [isEditingInfo, setIsEditingInfo] = useState(false);
   const [isAddingAddress, setIsAddingAddress] = useState(false);
   const [editingAddressId, setEditingAddressId] = useState<string | null>(null);
@@ -509,249 +511,177 @@ export default function ProfilePage() {
         {/* PERSONAL INFO TAB */}
         {activeTab === "info" && (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="flex items-center justify-between p-6 border-b border-gray-100">
-              <div>
-                <h2 className="text-lg font-bold text-gray-900">
-                  Personal Information
-                </h2>
-                <p className="text-sm text-gray-500 mt-0.5">
-                  Manage your name, contact & personal details
+            {/* Accordion Header — always visible, tap to collapse/expand */}
+            <button
+              onClick={() => { if (!isEditingInfo) setIsInfoCollapsed(!isInfoCollapsed); }}
+              className="w-full flex items-center gap-4 px-5 py-4 hover:bg-gray-50 transition-colors text-left"
+            >
+              <div className="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center shrink-0">
+                <User className="w-5 h-5 text-[#f97316]" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-gray-900 text-sm">Personal Information</p>
+                <p className="text-xs text-gray-400 mt-0.5 truncate">
+                  {`${user.firstName} ${user.lastName}`.trim() || user.email}
+                  {user.mainLocation ? ` · ${user.mainLocation}` : ""}
                 </p>
               </div>
-              {!isEditingInfo && (
+              {!isEditingInfo && !isInfoCollapsed && (
                 <button
-                  onClick={() => setIsEditingInfo(true)}
-                  className="flex items-center gap-2 bg-[#f97316] hover:bg-[#ea580c] text-white font-semibold px-4 py-2.5 rounded-xl transition-colors text-sm"
+                  onClick={(e) => { e.stopPropagation(); setIsEditingInfo(true); setIsInfoCollapsed(false); }}
+                  className="flex items-center gap-1.5 bg-[#f97316] hover:bg-[#ea580c] text-white font-semibold px-3 py-2 rounded-xl transition-colors text-xs shrink-0"
                 >
-                  <Edit2 className="w-4 h-4" />
-                  Edit Profile
+                  <Edit2 className="w-3.5 h-3.5" />
+                  Edit
                 </button>
               )}
-            </div>
+              <ChevronDown
+                className={`w-5 h-5 text-gray-400 transition-transform duration-200 shrink-0 ${isInfoCollapsed ? "" : "rotate-180"}`}
+              />
+            </button>
 
-            {saveSuccess && (
-              <div className="mx-6 mt-4 flex items-center gap-2 bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-xl text-sm font-medium">
-                <CheckCircle className="w-4 h-4" />
-                Profile updated successfully!
-              </div>
-            )}
-
-            <div className="p-6">
-              {isEditingInfo ? (
-                <form onSubmit={handleSaveInfo} className="space-y-5">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                        First Name
-                      </label>
-                      <input
-                        type="text"
-                        value={profileForm.firstName}
-                        onChange={(e) =>
-                          setProfileForm({
-                            ...profileForm,
-                            firstName: e.target.value,
-                          })
-                        }
-                        placeholder="First Name"
-                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#f97316] focus:ring-2 focus:ring-[#f97316]/20"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                        Last Name
-                      </label>
-                      <input
-                        type="text"
-                        value={profileForm.lastName}
-                        onChange={(e) =>
-                          setProfileForm({
-                            ...profileForm,
-                            lastName: e.target.value,
-                          })
-                        }
-                        placeholder="Last Name"
-                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#f97316] focus:ring-2 focus:ring-[#f97316]/20"
-                      />
-                    </div>
+            {/* Collapsible Body */}
+            {!isInfoCollapsed && (
+              <>
+                {saveSuccess && (
+                  <div className="mx-5 mb-0 mt-1 flex items-center gap-2 bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-2.5 rounded-xl text-sm font-medium">
+                    <CheckCircle className="w-4 h-4" />
+                    Profile updated successfully!
                   </div>
+                )}
 
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                      Phone Number
-                    </label>
-                    <div className="relative">
-                      <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                      <input
-                        type="tel"
-                        value={profileForm.phone}
-                        onChange={(e) =>
-                          setProfileForm({
-                            ...profileForm,
-                            phone: e.target.value,
-                          })
-                        }
-                        placeholder="+91 98765 43210"
-                        className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#f97316] focus:ring-2 focus:ring-[#f97316]/20"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                        Date of Birth
-                      </label>
-                      <div className="relative">
-                        <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                        <input
-                          type="date"
-                          value={profileForm.dateOfBirth}
-                          onChange={(e) =>
-                            setProfileForm({
-                              ...profileForm,
-                              dateOfBirth: e.target.value,
-                            })
-                          }
-                          className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#f97316] focus:ring-2 focus:ring-[#f97316]/20 text-gray-700"
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                        Gender
-                      </label>
-                      <select
-                        value={profileForm.gender}
-                        onChange={(e) =>
-                          setProfileForm({
-                            ...profileForm,
-                            gender: e.target.value,
-                          })
-                        }
-                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#f97316] focus:ring-2 focus:ring-[#f97316]/20 text-gray-700 bg-white"
-                      >
-                        <option value="">Prefer not to say</option>
-                        <option value="male">Male</option>
-                        <option value="female">Female</option>
-                        <option value="non-binary">Non-binary</option>
-                        <option value="other">Other</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                      Main Location
-                    </label>
-                    <div className="relative">
-                      <Globe className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                      <input
-                        type="text"
-                        value={profileForm.mainLocation}
-                        onChange={(e) =>
-                          setProfileForm({
-                            ...profileForm,
-                            mainLocation: e.target.value,
-                          })
-                        }
-                        placeholder="e.g. Mumbai, India"
-                        className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#f97316] focus:ring-2 focus:ring-[#f97316]/20"
-                      />
-                    </div>
-                    <p className="text-xs text-gray-400 mt-1.5">
-                      Your primary city/country shown on your profile
-                    </p>
-                  </div>
-
-                  <div className="flex gap-3 pt-2">
-                    <button
-                      type="submit"
-                      disabled={isLoading}
-                      className="flex-1 bg-[#f97316] hover:bg-[#ea580c] disabled:bg-gray-300 text-white font-semibold py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
-                    >
-                      {isLoading ? (
-                        <Loader className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Check className="w-4 h-4" />
-                      )}
-                      Save Changes
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setIsEditingInfo(false)}
-                      className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
-                    >
-                      <X className="w-4 h-4" />
-                      Cancel
-                    </button>
-                  </div>
-                </form>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-6 gap-x-8">
-                  {[
-                    {
-                      icon: User,
-                      label: "Full Name",
-                      value: `${user.firstName} ${user.lastName}`.trim() || "—",
-                    },
-                    {
-                      icon: Mail,
-                      label: "Email Address",
-                      value: user.email || "—",
-                    },
-                    {
-                      icon: Phone,
-                      label: "Phone Number",
-                      value: user.phone || "Not set",
-                    },
-                    {
-                      icon: Calendar,
-                      label: "Date of Birth",
-                      value: user.dateOfBirth ? formatDate(user.dateOfBirth) : "Not set",
-                    },
-                    {
-                      icon: UserCircle,
-                      label: "Gender",
-                      value: user.gender
-                        ? user.gender.charAt(0).toUpperCase() +
-                          user.gender.slice(1)
-                        : "Not set",
-                    },
-                    {
-                      icon: Globe,
-                      label: "Main Location",
-                      value: user.mainLocation || "Not set",
-                    },
-                  ].map((item) => {
-                    const Icon = item.icon;
-                    const isNotSet = item.value === "Not set";
-                    return (
-                      <div
-                        key={item.label}
-                        className="flex items-start gap-3 p-4 bg-gray-50 rounded-xl border border-gray-100"
-                      >
-                        <div className="w-9 h-9 bg-orange-100 rounded-lg flex items-center justify-center shrink-0">
-                          <Icon className="w-4 h-4 text-[#f97316]" />
+                <div className="px-5 pb-5 pt-2">
+                  {isEditingInfo ? (
+                    <form onSubmit={handleSaveInfo} className="space-y-4">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-600 mb-1.5">First Name</label>
+                          <input
+                            type="text"
+                            value={profileForm.firstName}
+                            onChange={(e) => setProfileForm({ ...profileForm, firstName: e.target.value })}
+                            placeholder="First Name"
+                            className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#f97316] focus:ring-2 focus:ring-[#f97316]/20"
+                          />
                         </div>
                         <div>
-                          <p className="text-xs text-gray-500 font-medium">
-                            {item.label}
-                          </p>
-                          <p
-                            className={`text-sm font-semibold mt-0.5 ${
-                              isNotSet ? "text-gray-400 italic" : "text-gray-900"
-                            }`}
-                          >
-                            {item.value}
-                          </p>
+                          <label className="block text-xs font-semibold text-gray-600 mb-1.5">Last Name</label>
+                          <input
+                            type="text"
+                            value={profileForm.lastName}
+                            onChange={(e) => setProfileForm({ ...profileForm, lastName: e.target.value })}
+                            placeholder="Last Name"
+                            className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#f97316] focus:ring-2 focus:ring-[#f97316]/20"
+                          />
                         </div>
                       </div>
-                    );
-                  })}
+
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-600 mb-1.5">Phone Number</label>
+                        <div className="relative">
+                          <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                          <input
+                            type="tel"
+                            value={profileForm.phone}
+                            onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
+                            placeholder="+91 98765 43210"
+                            className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#f97316] focus:ring-2 focus:ring-[#f97316]/20"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-600 mb-1.5">Date of Birth</label>
+                          <div className="relative">
+                            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                            <input
+                              type="date"
+                              value={profileForm.dateOfBirth}
+                              onChange={(e) => setProfileForm({ ...profileForm, dateOfBirth: e.target.value })}
+                              className="w-full pl-9 pr-2 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#f97316] focus:ring-2 focus:ring-[#f97316]/20 text-gray-700"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-600 mb-1.5">Gender</label>
+                          <select
+                            value={profileForm.gender}
+                            onChange={(e) => setProfileForm({ ...profileForm, gender: e.target.value })}
+                            className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#f97316] focus:ring-2 focus:ring-[#f97316]/20 text-gray-700 bg-white"
+                          >
+                            <option value="">Prefer not to say</option>
+                            <option value="male">Male</option>
+                            <option value="female">Female</option>
+                            <option value="non-binary">Non-binary</option>
+                            <option value="other">Other</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-600 mb-1.5">Main Location</label>
+                        <div className="relative">
+                          <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                          <input
+                            type="text"
+                            value={profileForm.mainLocation}
+                            onChange={(e) => setProfileForm({ ...profileForm, mainLocation: e.target.value })}
+                            placeholder="e.g. Mumbai, India"
+                            className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#f97316] focus:ring-2 focus:ring-[#f97316]/20"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex gap-3 pt-1">
+                        <button
+                          type="submit"
+                          disabled={isLoading}
+                          className="flex-1 bg-[#f97316] hover:bg-[#ea580c] disabled:bg-gray-300 text-white font-semibold py-2.5 rounded-xl transition-colors flex items-center justify-center gap-2 text-sm"
+                        >
+                          {isLoading ? <Loader className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                          Save Changes
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setIsEditingInfo(false)}
+                          className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-2.5 rounded-xl transition-colors flex items-center justify-center gap-2 text-sm"
+                        >
+                          <X className="w-4 h-4" />
+                          Cancel
+                        </button>
+                      </div>
+                    </form>
+                  ) : (
+                    /* Compact list — no big cards, just clean rows */
+                    <div className="divide-y divide-gray-100 border border-gray-100 rounded-xl overflow-hidden">
+                      {[
+                        { icon: User, label: "Full Name", value: `${user.firstName} ${user.lastName}`.trim() || "—" },
+                        { icon: Mail, label: "Email", value: user.email || "—" },
+                        { icon: Phone, label: "Phone", value: user.phone || "Not set" },
+                        { icon: Calendar, label: "Date of Birth", value: user.dateOfBirth ? formatDate(user.dateOfBirth) : "Not set" },
+                        { icon: UserCircle, label: "Gender", value: user.gender ? user.gender.charAt(0).toUpperCase() + user.gender.slice(1) : "Not set" },
+                        { icon: Globe, label: "Location", value: user.mainLocation || "Not set" },
+                      ].map((item) => {
+                        const Icon = item.icon;
+                        const isNotSet = item.value === "Not set";
+                        return (
+                          <div key={item.label} className="flex items-center gap-3 px-4 py-3 bg-white hover:bg-gray-50 transition-colors">
+                            <div className="w-7 h-7 bg-orange-50 rounded-lg flex items-center justify-center shrink-0">
+                              <Icon className="w-3.5 h-3.5 text-[#f97316]" />
+                            </div>
+                            <span className="text-xs text-gray-500 w-24 shrink-0 font-medium">{item.label}</span>
+                            <span className={`text-sm font-semibold flex-1 truncate ${isNotSet ? "text-gray-300 italic" : "text-gray-800"}`}>
+                              {item.value}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
+              </>
+            )}
           </div>
         )}
 
