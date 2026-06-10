@@ -10,9 +10,9 @@ import {
   DollarSign, TrendingUp, Clock, CheckCircle, Truck, XCircle,
   AlertCircle, Search, LogOut, Menu, BarChart2, ArrowUpRight,
   Star, Bell, Edit2, Trash2, Plus, Eye, X, Upload,
-  FileText, MessageSquare, Reply, Send, RefreshCw, ExternalLink,
+  FileText, MessageSquare, Reply, Send, RefreshCw, ExternalLink, ShieldAlert,
 } from "lucide-react";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 import { storage } from "@/lib/firebase";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -44,7 +44,7 @@ interface QuoteRequest {
   createdAt: string;
 }
 
-type Tab = "overview" | "orders" | "products" | "customers" | "quotes" | "chatbot" | "settings";
+type Tab = "overview" | "orders" | "products" | "customers" | "quotes" | "chatbot" | "settings" | "diagnostics";
 type ContextOrderStatus = "pending" | "confirmed" | "shipped" | "delivered" | "cancelled";
 type AdminOrderStatus = "Pending" | "Processing" | "Shipped" | "Delivered" | "Cancelled";
 
@@ -305,13 +305,18 @@ export default function AdminDashboard() {
   };
 
   const handleSaveProduct = async () => {
-    if (!formData.name || !formData.category || !formData.price) {
-      alert("Please fill in required fields: Name, Category, and Price");
+    // Strict Validation
+    if (!formData.name || !formData.category || !formData.subCategory || !formData.price || !formData.image) {
+      alert("Required fields missing: Name, Main Category, Sub Category, Price, and Main Image.");
       return;
     }
     
     const features = Array.isArray(formData.features) ? formData.features : (formData.features || "").split('\n').filter((f: string) => f.trim());
-    const payload = { ...formData, features };
+    const payload = { 
+      ...formData, 
+      features,
+      updatedAt: new Date().toISOString()
+    };
 
     try {
       if (productModal.mode === "add") {
@@ -322,17 +327,69 @@ export default function AdminDashboard() {
       setProductModal({ open: false, mode: "add" });
     } catch (err) {
       console.error("Save product error:", err);
-      alert("Failed to save product. Please check your connection and try again.");
+      alert("Failed to save product. Check console for details.");
     }
+  };
+
+  const handleDeleteProduct = async (id: string) => {
+    if (!window.confirm("Are you sure you want to delete this product? All images and videos will also be deleted from storage.")) return;
+    
+    const product = products.find(p => p.id === id);
+    if (!product) return;
+
+    try {
+      // 1. Delete Media from Storage
+      const mediaUrls = [product.image, ...(product.images || []), product.video].filter(Boolean);
+      for (const url of mediaUrls) {
+        if (url.includes('firebasestorage.googleapis.com')) {
+          try {
+            const fileRef = ref(storage, url);
+            await deleteObject(fileRef);
+          } catch (e) {
+            console.warn("Failed to delete media from storage:", url, e);
+          }
+        }
+      }
+
+      // 2. Delete Document from Firestore
+      await deleteProduct(id);
+    } catch (err) {
+      console.error("Delete product error:", err);
+      alert("Failed to delete product.");
+    }
+  };
+
+  const handleDuplicateProduct = (p: any) => {
+    const duplicated = { 
+      ...p, 
+      id: undefined, 
+      name: `${p.name} (Copy)`,
+      createdAt: undefined,
+      updatedAt: undefined
+    };
+    setProductModal({ open: true, mode: "add" });
+    setFormData(duplicated);
   };
 
   const handleImageUpload = async (file: File, isMain: boolean = true) => {
     if (!file) return;
+
+    // Validation
+    if (!file.type.startsWith('image/')) {
+      alert("Invalid file type. Please upload an image.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      alert("File too large. Maximum size is 5MB.");
+      return;
+    }
+
     setImageUploading(true);
     try {
       const storageRef = ref(storage, `products/${Date.now()}_${file.name}`);
-      await uploadBytes(storageRef, file);
-      const url = await getDownloadURL(storageRef);
+      const snapshot = await uploadBytes(storageRef, file);
+      const url = await getDownloadURL(snapshot.ref);
+      
       if (isMain) {
         setFormData((prev: any) => ({ ...prev, image: url }));
       } else {
@@ -341,9 +398,13 @@ export default function AdminDashboard() {
           images: [...(prev.images || []), url].slice(0, 10)
         }));
       }
-    } catch (err) {
-      alert("Upload failed. Please try again.");
-      console.error(err);
+    } catch (err: any) {
+      console.error("Image upload error:", err);
+      let msg = "Upload failed. Please try again.";
+      if (err.code === 'storage/unauthorized') msg = "Permission denied. Please check storage rules.";
+      if (err.code === 'storage/quota-exceeded') msg = "Storage quota exceeded.";
+      if (err.code === 'storage/retry-limit-exceeded') msg = "Network failure. Please check your connection.";
+      alert(msg);
     } finally {
       setImageUploading(false);
     }
@@ -351,15 +412,29 @@ export default function AdminDashboard() {
 
   const handleVideoUpload = async (file: File) => {
     if (!file) return;
+
+    // Validation
+    if (!file.type.startsWith('video/')) {
+      alert("Invalid file type. Please upload a video.");
+      return;
+    }
+    if (file.size > 50 * 1024 * 1024) { // 50MB limit
+      alert("Video too large. Maximum size is 50MB.");
+      return;
+    }
+
     setImageUploading(true);
     try {
       const storageRef = ref(storage, `videos/${Date.now()}_${file.name}`);
-      await uploadBytes(storageRef, file);
-      const url = await getDownloadURL(storageRef);
+      const snapshot = await uploadBytes(storageRef, file);
+      const url = await getDownloadURL(snapshot.ref);
       setFormData((prev: any) => ({ ...prev, video: url }));
-    } catch (err) {
-      alert("Video upload failed. Please try again.");
-      console.error(err);
+    } catch (err: any) {
+      console.error("Video upload error:", err);
+      let msg = "Video upload failed. Please try again.";
+      if (err.code === 'storage/unauthorized') msg = "Permission denied. Please check storage rules.";
+      if (err.code === 'storage/quota-exceeded') msg = "Storage quota exceeded.";
+      alert(msg);
     } finally {
       setImageUploading(false);
     }
@@ -620,13 +695,19 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {filteredProducts.map(p => (
           <div key={p.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md transition-shadow group">
-            <div className="relative h-36 bg-gradient-to-br from-[#1a3a6b]/5 to-[#1a3a6b]/10 flex items-center justify-center">
-              <Package className="w-12 h-12 text-[#1a3a6b]/20" />
-              {p.badge && <span className="absolute top-2 left-2 bg-[#f97316] text-white text-xs font-bold px-2 py-0.5 rounded-full">{p.badge}</span>}
-              <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button onClick={() => openEditModal(p)} className="w-7 h-7 bg-white rounded-lg shadow flex items-center justify-center hover:bg-[#1a3a6b] hover:text-white transition-colors"><Edit2 className="w-3.5 h-3.5" /></button>
-                <button onClick={() => handleDeleteProduct(p.id)} className="w-7 h-7 bg-white rounded-lg shadow flex items-center justify-center hover:bg-red-500 hover:text-white transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
+            <div className="relative h-40 bg-gray-50 flex items-center justify-center overflow-hidden">
+              {p.image ? (
+                <img src={p.image} alt={p.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+              ) : (
+                <Package className="w-12 h-12 text-[#1a3a6b]/20" />
+              )}
+              {p.badge && <span className="absolute top-2 left-2 bg-[#f97316] text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide">{p.badge}</span>}
+              <div className="absolute top-2 right-2 flex flex-col gap-1.5 opacity-0 group-hover:opacity-100 transition-all translate-x-2 group-hover:translate-x-0">
+                <button onClick={() => handleDuplicateProduct(p)} title="Duplicate" className="w-8 h-8 bg-white rounded-lg shadow-lg flex items-center justify-center text-purple-600 hover:bg-purple-600 hover:text-white transition-colors"><RefreshCw className="w-4 h-4" /></button>
+                <button onClick={() => openEditModal(p)} title="Edit" className="w-8 h-8 bg-white rounded-lg shadow-lg flex items-center justify-center text-blue-600 hover:bg-blue-600 hover:text-white transition-colors"><Edit2 className="w-4 h-4" /></button>
+                <button onClick={() => handleDeleteProduct(p.id)} title="Delete" className="w-8 h-8 bg-white rounded-lg shadow-lg flex items-center justify-center text-red-600 hover:bg-red-600 hover:text-white transition-colors"><Trash2 className="w-4 h-4" /></button>
               </div>
+              {p.video && <div className="absolute bottom-2 right-2 bg-black/60 text-white text-[9px] font-bold px-1.5 py-0.5 rounded uppercase">Video</div>}
             </div>
             <div className="p-4">
               <p className="font-bold text-gray-800 text-sm leading-tight mb-0.5">{p.name}</p>
@@ -1064,6 +1145,68 @@ export default function AdminDashboard() {
     </div>
   );
 
+  const DiagnosticsEl = (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {[
+          { label: "Total Products", value: products.length, icon: <Package className="w-5 h-5" />, color: "text-blue-600" },
+          { label: "No Images", value: products.filter(p => !p.image).length, icon: <Eye className="w-5 h-5" />, color: "text-red-600" },
+          { label: "Missing Category", value: products.filter(p => !p.category || !p.subCategory).length, icon: <AlertCircle className="w-5 h-5" />, color: "text-orange-600" },
+        ].map((stat, i) => (
+          <div key={i} className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+            <div className="flex items-center gap-3 mb-2">
+              <div className={`p-2 rounded-lg bg-gray-50 ${stat.color}`}>{stat.icon}</div>
+              <span className="text-sm font-medium text-gray-500">{stat.label}</span>
+            </div>
+            <p className="text-2xl font-black text-gray-900">{stat.value}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100 bg-gray-50">
+          <h3 className="font-bold text-gray-800">Product Integrity Audit</h3>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-gray-50 text-gray-500 uppercase text-[10px] font-bold">
+              <tr>
+                <th className="px-6 py-3">Product</th>
+                <th className="px-6 py-3">Status</th>
+                <th className="px-6 py-3">Issues</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {products.map(p => {
+                const issues = [];
+                if (!p.image) issues.push("Missing main image");
+                if (!p.category) issues.push("Missing category");
+                if (!p.subCategory) issues.push("Missing sub-category");
+                if (!p.price) issues.push("Price is 0 or missing");
+                
+                return (
+                  <tr key={p.id} className="hover:bg-gray-50/50">
+                    <td className="px-6 py-4 font-medium text-gray-900">{p.name}</td>
+                    <td className="px-6 py-4">
+                      {issues.length === 0 ? (
+                        <span className="text-green-600 flex items-center gap-1"><CheckCircle className="w-3.5 h-3.5" /> Healthy</span>
+                      ) : (
+                        <span className="text-red-600 flex items-center gap-1"><XCircle className="w-3.5 h-3.5" /> Issues Found</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-gray-500">
+                      {issues.length > 0 ? issues.join(", ") : "None"}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+
   const SettingsEl = (
     <div className="max-w-2xl space-y-6">
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
@@ -1085,11 +1228,12 @@ export default function AdminDashboard() {
   const TITLES: Record<Tab, string> = {
     overview: "Dashboard Overview", orders: "Orders Management",
     products: "Products Catalogue", customers: "Customer Directory",
-    quotes: "Quote Requests", chatbot: "Chatbot Manager", settings: "Store Settings",
+    quotes: "Quote Requests", chatbot: "Chatbot Manager", 
+    diagnostics: "System Diagnostics", settings: "Store Settings",
   };
   const CONTENT: Record<Tab, React.ReactNode> = {
     overview: Overview, orders: Orders, products: Products, customers: Customers,
-    quotes: QuotesEl, chatbot: ChatbotEl, settings: SettingsEl,
+    quotes: QuotesEl, chatbot: ChatbotEl, diagnostics: DiagnosticsEl, settings: SettingsEl,
   };
 
   return (

@@ -6,7 +6,7 @@ import {
   onSnapshot, query, orderBy, serverTimestamp,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { products as defaultProducts, Product } from "@/data/products";
+import { Product, CATEGORY_HIERARCHY } from "@/data/products";
 
 interface ProductsContextType {
   products: Product[];
@@ -15,6 +15,8 @@ interface ProductsContextType {
   addProduct: (product: Omit<Product, "id">) => Promise<void>;
   updateProduct: (id: string, updates: Partial<Product>) => Promise<void>;
   deleteProduct: (id: string) => Promise<void>;
+  incrementView: (id: string) => Promise<void>;
+  toggleLike: (id: string, currentLikes: number) => Promise<void>;
 }
 
 const ProductsContext = createContext<ProductsContextType | undefined>(undefined);
@@ -36,15 +38,14 @@ export function ProductsProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(false);
     }, (err) => {
       console.error("Firestore products error:", err);
-      // Fall back to static data on error
-      setProducts(defaultProducts);
+      setProducts([]); // No fallback to demo data
       setIsLoading(false);
     });
 
     return () => unsub();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const categories = Array.from(new Set(products.map((p) => p.category)));
+  const categories = Object.keys(CATEGORY_HIERARCHY);
 
   const addProduct = async (p: Omit<Product, "id">) => {
     await addDoc(collection(db, COLLECTION), { ...p, createdAt: serverTimestamp() });
@@ -55,12 +56,27 @@ export function ProductsProvider({ children }: { children: React.ReactNode }) {
   };
 
   const deleteProduct = async (id: string) => {
-    await deleteDoc(doc(db, COLLECTION, id));
+    const productRef = doc(db, COLLECTION, id);
+    await deleteDoc(productRef);
+  };
+
+  const incrementView = async (id: string) => {
+    const productRef = doc(db, COLLECTION, id);
+    await updateDoc(productRef, {
+      views: (products.find(p => p.id === id)?.views || 0) + 1
+    });
+  };
+
+  const toggleLike = async (id: string, currentLikes: number) => {
+    const productRef = doc(db, COLLECTION, id);
+    await updateDoc(productRef, {
+      likes: currentLikes + 1
+    });
   };
 
   return (
     <ProductsContext.Provider
-      value={{ products, categories, isLoading, addProduct, updateProduct, deleteProduct }}
+      value={{ products, categories, isLoading, addProduct, updateProduct, deleteProduct, incrementView, toggleLike }}
     >
       {children}
     </ProductsContext.Provider>
