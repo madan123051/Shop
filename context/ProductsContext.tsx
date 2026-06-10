@@ -33,7 +33,7 @@ export function ProductsProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(products));
   }, [products]);
 
-  const categories = [...new Set(products.map((p) => p.category))];
+  const categories = Array.from(new Set(products.map((p) => p.category)));
 
   const addProduct = (p: Omit<Product, "id">) => {
     const newProduct: Product = {
