@@ -6,6 +6,7 @@ import { OrderProvider } from "@/context/OrderContext";
 import { ProductsProvider } from "@/context/ProductsContext";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import ChatBot from "@/components/ChatBot";
 
 export const metadata: Metadata = {
   title: "NewTech Home Solutions — Complete Home Protection & Interior Solutions",
@@ -60,6 +61,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <Navbar />
                 <main className="flex-1">{children}</main>
                 <Footer />
+                <ChatBot />
               </CartProvider>
             </ProductsProvider>
           </OrderProvider>

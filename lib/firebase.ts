@@ -1,6 +1,7 @@
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
 import { getAuth, type Auth } from "firebase/auth";
 import { getFirestore, type Firestore } from "firebase/firestore";
+import { getStorage, type FirebaseStorage } from "firebase/storage";
 import { getAnalytics, isSupported, type Analytics } from "firebase/analytics";
 
 // ─── Firebase Project Config ─────────────────────────────────────────────────
@@ -20,6 +21,7 @@ const app: FirebaseApp =
 
 const auth: Auth = getAuth(app);
 const db: Firestore = getFirestore(app);
+const storage: FirebaseStorage = getStorage(app);
 
 // ─── Analytics (browser-only — SSR safe) ────────────────────────────────────
 let analytics: Analytics | null = null;
@@ -29,5 +31,5 @@ if (typeof window !== "undefined") {
   });
 }
 
-export { auth, db, analytics };
+export { auth, db, storage, analytics };
 export default app;

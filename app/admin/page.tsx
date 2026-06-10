@@ -9,9 +9,11 @@ import {
   LayoutDashboard, ShoppingCart, Package, Users, Settings,
   DollarSign, TrendingUp, Clock, CheckCircle, Truck, XCircle,
   AlertCircle, Search, LogOut, Menu, BarChart2, ArrowUpRight,
-  Star, Bell, Edit2, Trash2, Plus, Eye, X,
+  Star, Bell, Edit2, Trash2, Plus, Eye, X, Upload,
   FileText, MessageSquare, Reply, Send, RefreshCw, ExternalLink,
 } from "lucide-react";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { storage } from "@/lib/firebase";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -132,6 +134,7 @@ export default function AdminDashboard() {
   // Product Modal State
   const [productModal, setProductModal] = useState<{ open: boolean; mode: "add" | "edit"; product?: any }>({ open: false, mode: "add" });
   const [formData, setFormData] = useState<any>({});
+  const [imageUploading, setImageUploading] = useState(false);
 
   // Quote Requests State
   const [quotes, setQuotes] = useState<QuoteRequest[]>([]);
@@ -289,6 +292,22 @@ export default function AdminDashboard() {
     }
 
     setProductModal({ open: false, mode: "add" });
+  };
+
+  const handleImageUpload = async (file: File) => {
+    if (!file) return;
+    setImageUploading(true);
+    try {
+      const storageRef = ref(storage, `products/${Date.now()}_${file.name}`);
+      await uploadBytes(storageRef, file);
+      const url = await getDownloadURL(storageRef);
+      setFormData((prev: any) => ({ ...prev, image: url }));
+    } catch (err) {
+      alert("Image upload failed. Please try again.");
+      console.error(err);
+    } finally {
+      setImageUploading(false);
+    }
   };
 
   const adminInitial = (user?.displayName ?? user?.email ?? "A").charAt(0).toUpperCase();
@@ -621,9 +640,24 @@ export default function AdminDashboard() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">Image URL</label>
-                <input type="text" value={formData.image || ""} onChange={e => setFormData({ ...formData, image: e.target.value })}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-[#f97316]" />
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Product Image</label>
+                <div className="space-y-2">
+                  <label className={`flex items-center justify-center gap-2 w-full px-3 py-2.5 text-sm border-2 border-dashed rounded-lg cursor-pointer transition-colors ${imageUploading ? "border-gray-200 bg-gray-50 opacity-60" : "border-[#1a3a6b]/30 hover:border-[#f97316] hover:bg-orange-50"}`}>
+                    <Upload className="w-4 h-4 text-gray-400" />
+                    <span className="text-gray-500">{imageUploading ? "Uploading…" : "Upload image from device"}</span>
+                    <input type="file" accept="image/*" className="hidden" disabled={imageUploading}
+                      onChange={e => { const f = e.target.files?.[0]; if (f) handleImageUpload(f); }} />
+                  </label>
+                  {formData.image && (
+                    <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2">
+                      <img src={formData.image} alt="preview" className="w-10 h-10 object-cover rounded-lg border border-gray-200" />
+                      <span className="text-xs text-gray-500 truncate flex-1">{formData.image}</span>
+                      <button type="button" onClick={() => setFormData((prev: any) => ({ ...prev, image: "" }))} className="text-gray-400 hover:text-red-500"><X className="w-4 h-4" /></button>
+                    </div>
+                  )}
+                  <input type="text" placeholder="Or paste image URL directly" value={formData.image || ""} onChange={e => setFormData({ ...formData, image: e.target.value })}
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-[#f97316]" />
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1">Description</label>
@@ -632,7 +666,7 @@ export default function AdminDashboard() {
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1">Features (one per line)</label>
-                <textarea value={(Array.isArray(formData.features) ? formData.features : formData.features || "").split('\n').join('\n') || ""} onChange={e => setFormData({ ...formData, features: e.target.value.split('\n').filter(f => f.trim()) })}
+                <textarea value={Array.isArray(formData.features) ? formData.features.join('\n') : (formData.features || "")} onChange={e => setFormData({ ...formData, features: e.target.value.split('\n').filter(f => f.trim()) })}
                   className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-[#f97316]" rows={3} />
               </div>
               <div className="grid grid-cols-2 gap-4">
