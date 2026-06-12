@@ -2,11 +2,12 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
-import { Star, ShoppingCart, Heart, Check, Share2, MessageCircle, Eye } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Star, ShoppingCart, Heart, Check, Share2, Eye, ChevronLeft, ChevronRight } from "lucide-react";
 import { Product } from "@/data/products";
 import { useCart } from "@/context/CartContext";
 import { useProducts } from "@/context/ProductsContext";
+import { useRouter } from "next/navigation";
 
 const badgeColors: Record<string, string> = {
   Sale: "bg-red-500",
@@ -18,8 +19,78 @@ const badgeColors: Record<string, string> = {
 export default function ProductCard({ product }: { product: Product }) {
   const { addToCart } = useCart();
   const { toggleLike, incrementView } = useProducts();
+  const router = useRouter();
   const [isAdded, setIsAdded] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [autoResetKey, setAutoResetKey] = useState(0);
+  const touchStartX = useRef<number>(0);
+  const isSwiping = useRef<boolean>(false);
+
+  const allImages = [product.image, ...(product.images || [])];
+  const hasMultiple = allImages.length > 1;
+
+  // Auto-slide — restarts whenever autoResetKey changes (manual nav)
+  useEffect(() => {
+    if (!hasMultiple) return;
+    const timer = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % allImages.length);
+    }, 3000);
+    return () => clearInterval(timer);
+  }, [hasMultiple, allImages.length, autoResetKey]);
+
+  const resetSlide = () => setAutoResetKey((k) => k + 1);
+
+  const goPrev = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setCurrentIndex((prev) => (prev - 1 + allImages.length) % allImages.length);
+    resetSlide();
+  };
+
+  const goNext = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setCurrentIndex((prev) => (prev + 1) % allImages.length);
+    resetSlide();
+  };
+
+  const goDot = (i: number, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setCurrentIndex(i);
+    resetSlide();
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    isSwiping.current = false;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (Math.abs(e.touches[0].clientX - touchStartX.current) > 10) {
+      isSwiping.current = true;
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    const diff = touchStartX.current - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 40) {
+      if (diff > 0) {
+        setCurrentIndex((prev) => (prev + 1) % allImages.length);
+      } else {
+        setCurrentIndex((prev) => (prev - 1 + allImages.length) % allImages.length);
+      }
+      resetSlide();
+    }
+  };
+
+  const handleImageClick = () => {
+    if (!isSwiping.current) {
+      incrementView(product.id);
+      router.push(`/product/${product.id}`);
+    }
+  };
 
   const handleAddToCart = () => {
     addToCart(product);
@@ -67,14 +138,14 @@ export default function ProductCard({ product }: { product: Product }) {
         >
           <Heart className={`w-5 h-5 ${isFavorite ? "fill-current" : ""}`} />
         </button>
-        <button 
+        <button
           onClick={handleShare}
           className="w-10 h-10 bg-white text-gray-400 hover:text-[#f97316] rounded-full shadow-lg flex items-center justify-center transition-all"
         >
           <Share2 className="w-5 h-5" />
         </button>
-        <Link 
-          href={`/product/${product.id}`} 
+        <Link
+          href={`/product/${product.id}`}
           onClick={handleView}
           className="w-10 h-10 bg-white text-gray-400 hover:text-blue-500 rounded-full shadow-lg flex items-center justify-center transition-all"
         >
@@ -82,20 +153,45 @@ export default function ProductCard({ product }: { product: Product }) {
         </Link>
       </div>
 
-      {/* Image Section */}
-      <Link href={`/product/${product.id}`} className="relative block aspect-[4/5] overflow-hidden bg-gray-50">
-        <Image
-          src={product.image}
-          alt={product.name}
-          fill
-          className="object-cover group-hover:scale-110 transition-transform duration-700"
-          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
-        />
-        
+      {/* ── Image Carousel ── */}
+      <div
+        className="relative aspect-[4/5] overflow-hidden bg-gray-50 cursor-pointer select-none"
+        onClick={handleImageClick}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
+        {/* Slides Track */}
+        <div
+          className="flex h-full transition-transform duration-500 ease-in-out"
+          style={{
+            width: `${allImages.length * 100}%`,
+            transform: `translateX(-${currentIndex * (100 / allImages.length)}%)`,
+          }}
+        >
+          {allImages.map((img, i) => (
+            <div
+              key={i}
+              className="relative h-full flex-shrink-0"
+              style={{ width: `${100 / allImages.length}%` }}
+            >
+              <Image
+                src={img}
+                alt={`${product.name} ${i + 1}`}
+                fill
+                className="object-cover group-hover:scale-110 transition-transform duration-700"
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+              />
+            </div>
+          ))}
+        </div>
+
         {/* Badges Overlay */}
-        <div className="absolute top-4 left-4 flex flex-col gap-2">
+        <div className="absolute top-4 left-4 flex flex-col gap-2 z-10">
           {product.badge && (
-            <span className={`${badgeColors[product.badge]} text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full shadow-sm`}>
+            <span
+              className={`${badgeColors[product.badge]} text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full shadow-sm`}
+            >
               {product.badge}
             </span>
           )}
@@ -106,13 +202,39 @@ export default function ProductCard({ product }: { product: Product }) {
           )}
         </div>
 
-        {/* Media Indicator */}
-        {(product.images?.length || 0) > 0 && (
-          <div className="absolute bottom-4 right-4 bg-black/50 backdrop-blur-md text-white text-[10px] font-bold px-2 py-1 rounded-md">
-            {product.images!.length + 1} PHOTOS
+        {/* Prev / Next Arrows (visible on hover) */}
+        {hasMultiple && (
+          <>
+            <button
+              onClick={goPrev}
+              className="absolute left-2 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-black/40 hover:bg-black/70 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <button
+              onClick={goNext}
+              className="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-black/40 hover:bg-black/70 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </>
+        )}
+
+        {/* Dot Indicators */}
+        {hasMultiple && (
+          <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5 z-10">
+            {allImages.map((_, i) => (
+              <button
+                key={i}
+                onClick={(e) => goDot(i, e)}
+                className={`rounded-full transition-all duration-300 ${
+                  i === currentIndex ? "bg-white w-4 h-1.5" : "bg-white/50 w-1.5 h-1.5"
+                }`}
+              />
+            ))}
           </div>
         )}
-      </Link>
+      </div>
 
       {/* Content Section */}
       <div className="p-5 flex flex-col flex-1">
@@ -134,7 +256,7 @@ export default function ProductCard({ product }: { product: Product }) {
 
         {/* Social Stats */}
         <div className="flex items-center gap-4 mb-4 text-gray-400">
-          <button 
+          <button
             onClick={handleFavorite}
             className="flex items-center gap-1 hover:text-red-500 transition-colors"
           >
@@ -145,7 +267,7 @@ export default function ProductCard({ product }: { product: Product }) {
             <Eye className="w-3.5 h-3.5" />
             <span className="text-[11px] font-medium">{product.views || 0}</span>
           </div>
-          <button 
+          <button
             onClick={handleShare}
             className="flex items-center gap-1 hover:text-[#f97316] transition-colors"
           >
@@ -182,7 +304,7 @@ export default function ProductCard({ product }: { product: Product }) {
               </span>
             )}
           </div>
-          
+
           <button
             onClick={handleAddToCart}
             disabled={!product.inStock}
